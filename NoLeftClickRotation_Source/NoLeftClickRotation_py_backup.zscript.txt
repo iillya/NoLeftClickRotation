@@ -1,0 +1,9 @@
+// NoLeftClickRotation - ZBrush 2026 official plugin entry.
+// This text script is compiled to NoLeftClickRotation.zsc.
+// It calls the companion DLL through the official [FileExecute] interface.
+
+[VarSet, nlcDllPath, [FileNameResolvePath, "NoLeftClickRotationData/NoLeftClickRotation.dll"]]
+[If, [FileExists, [Var, nlcDllPath]],, [VarSet, nlcDllPath, "ZBRUSH_ZSTARTUP/ZPlugs64/NoLeftClickRotationData/NoLeftClickRotation.dll"]]
+[If, [FileExists, [Var, nlcDllPath]],
+    [VarSet, nlcInstallResult, [FileExecute, [Var, nlcDllPath], "Install"]]
+]

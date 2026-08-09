@@ -1,0 +1,22 @@
+// NoLeftClickRotation - disable left-button view rotation.
+// Official ZPlugin entry (ZBrush 2026+): compile this text to
+// NoLeftClickRotation.zsc on the ZBrush version you use.
+//
+// It only loads the companion DLL through the official [FileExecute]
+// interface at ZBrush startup. The DLL then uses ZBrush's embedded Python
+// VM (init.py) to build the bilingual UI and to query the canvas state
+// synchronously on mouse events - no ZScript polling, no Sleep loop.
+
+[VarDef, nlcDllPath, ""]
+[VarDef, nlcInstalled, 0]
+
+[VarSet, nlcDllPath, [FileNameResolvePath, "NoLeftClickRotationData/NoLeftClickRotation.dll"]]
+[If, [FileExists, [Var, nlcDllPath]] = 0,
+  [VarSet, nlcDllPath, "ZBRUSH_ZSTARTUP/ZPlugs64/NoLeftClickRotationData/NoLeftClickRotation.dll"]
+]
+[If, [FileExists, [Var, nlcDllPath]] = 0,
+  [VarSet, nlcDllPath, "ZBRUSH_ZPLUGS/NoLeftClickRotationData/NoLeftClickRotation.dll"]
+]
+[If, [FileExists, [Var, nlcDllPath]] = 1,
+  [VarSet, nlcInstalled, [FileExecute, [Var, nlcDllPath], "Install"]]
+]

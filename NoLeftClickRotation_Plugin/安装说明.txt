@@ -1,0 +1,56 @@
+NoLeftClickRotation（禁用左键视图旋转）安装说明
+================================================
+
+适用版本：ZBrush 2026.0 / 2026.1。
+
+纯 Python 插件：只有一个 NoLeftClickRotation.py，无 .zsc、无 DLL、
+无环境变量、无安装程序，随 ZBrush 启动/退出。
+
+功能
+----
+在 ZBrush 雕刻（Edit 模式）下，禁用“左键按住空白画布拖动触发视图旋转”。
+- 界面上的滑块/按钮/画布内自定义 UI 均可正常点击与拖动；
+- 光标从空白处拖到模型上时，笔刷从进入点正常起笔，不拦截画笔运动；
+- Alt+左键在空白处会平移视图，同样禁用；Ctrl+左键（框选遮罩）不受影响；
+- Ctrl+左键框选遮罩、Shift+左键等操作原样交给 ZBrush，不受影响；
+- 判定使用官方 PixolPick 材质索引（0 = 空白画布），不比较颜色；
+- 右键缩放、中键平移不受影响。
+
+实现方式（两层）
+---------------
+1. 窗口子类：Edit 模式画布内的左键按下不转发给 ZBrush；光标进入模型后
+   补发一次按下，笔刷从进入点正常起笔；离开模型及时补发抬起。
+2. IAT 钩子：ZBrush 的视图旋转由“物理左键状态 + 光标位置”轮询驱动，只拦
+   窗口消息拦不住。插件在本进程内把 ZBrush.exe 导入表里的 GetAsyncKeyState
+   指向一个极小的原生存根：光标在空白画布上时对左键返回“未按下”，旋转从
+   源头被阻断；光标在模型上时返回真实状态，雕刻不受影响。钩子随 ZBrush
+   进程启停，不写注册表、不需要安装程序。
+
+手动安装
+--------
+1. 完全关闭 ZBrush；
+2. 打开 ZBrush 用户资产目录：
+   ZBrush 菜单 → Preferences（偏好设置）→ Asset Directory（资产目录）
+   → Open Directory（打开目录）；
+   或直接进入：
+   C:\Users\[用户名]\AppData\Roaming\Maxon\Maxon ZBrush 2026_F3C8B4C4\
+3. 进入其中的 ZStartup\ZPlugs64（没有就手动创建）；
+4. 把 NoLeftClickRotation.py 复制进去（ZBrush 会自动执行该目录下的
+   *.py，和官方 Python 示例插件同一机制）；
+5. 重新启动 ZBrush；
+6. 打开 Z插件 菜单 → 禁用左键视图旋转 → 启用（默认已启用）。
+
+首次运行会在同目录自动生成 config.txt（1=启用，0=停用），
+无需手动创建。
+
+卸载
+----
+关闭 ZBrush，删除 ZStartup\ZPlugs64 下的 NoLeftClickRotation.py 和
+config.txt（如无其他插件共用该文件名）即可。不修改 ZBrush 安装目录，
+不写注册表/环境变量。
+
+说明
+----
+- 插件不注入 DLL、不改动 ZBrush 安装目录，卸载 = 删除文件；
+- 插件不修改视图变换、不产生画布残影；如遇到画布残留，Ctrl+N 清空画布；
+- 若曾安装过旧版（.zsc / NoLeftClickRotationData），请先删除旧文件。

@@ -1,0 +1,69 @@
+NoLeftClickRotation（禁用左键视图旋转）安装说明
+================================================
+
+插件格式：官方 ZPlugin（.zsc + 数据目录），无安装程序，无环境变量，
+不写开机启动项。随 ZBrush 启动而加载，随 ZBrush 关闭而退出。
+
+功能
+----
+在 ZBrush 雕刻（Edit 模式）下，禁用“左键按住空白画布拖动触发视图旋转”。
+- 左键点击本身不被拦截，界面滑块/按钮/画布内自定义 UI 均可正常拖动；
+- 光标从空白处拖到模型上时，笔刷从进入点正常起笔，不拦截画笔运动；
+- Ctrl/Shift/Alt + 左键（框选遮罩等）原样交给 ZBrush，不受影响；
+- 判定使用官方 PixolPick 材质索引（0 = 空白画布），不比较颜色；
+- 右键缩放、中键平移不受影响。
+
+支持版本
+--------
+- ZBrush 2026.0 / 2026.1：精确模式。使用官方 Python API，启动即生效，
+  无需校准，行为与上述功能描述完全一致。
+- ZBrush 2022 - 2025：兼容模式（这些版本没有官方 Python API）。
+  判定优先使用文档化的 ZScript 事件循环（Sleep + IGet Transform:Edit +
+  MouseHPos/VPos + PixolPick），把状态推给 DLL；若被其他插件/宏打断，
+  自动退回 F2 光标校准（鼠标移到空白画布按 F2，结果保存在 config.txt）。
+
+手动安装
+--------
+1. 完全关闭 ZBrush；
+2. 打开 ZBrush 用户资产目录：
+   ZBrush 菜单 → Preferences（偏好设置）→ Asset Directory（资产目录）
+   → Open Directory（打开目录）；
+   或直接进入：
+   C:\Users\[用户名]\AppData\Roaming\Maxon\Maxon ZBrush 2026_F3C8B4C4\
+   （旧版为 Pixologic\ZBrush 20xx\ 下对应的用户目录）；
+3. 进入其中的 ZStartup\ZPlugs64（没有就手动创建）；
+4. 把 NoLeftClickRotation.zsc 和 NoLeftClickRotationData 文件夹一起复制
+   进去，最终目录结构：
+   ...\ZStartup\ZPlugs64\NoLeftClickRotation.zsc
+   ...\ZStartup\ZPlugs64\NoLeftClickRotationData\NoLeftClickRotation.dll
+   ...\ZStartup\ZPlugs64\NoLeftClickRotationData\init.py
+   ...\ZStartup\ZPlugs64\NoLeftClickRotationData\config.txt
+5. 重新启动 ZBrush；
+6. 打开 Z插件 菜单 → 禁用左键视图旋转 → 启用（默认已启用）。
+
+旧版（2022-2025）重新编译 .zsc
+------------------------------
+.zsc 是版本相关编译产物，2026 编译的 .zsc 不保证能在旧版加载。请在目标
+版本重新编译（详见 NoLeftClickRotationData\README.txt）：
+1. 备份该版本 ZData\ZScripts\DefaultZScript.txt 和 .zsc；
+2. 用 NoLeftClickRotation.txt 覆盖 DefaultZScript.txt，删除
+   DefaultZScript.zsc；
+3. 启动一次 ZBrush，等生成新 DefaultZScript.zsc 后退出；
+4. 将其复制为 NoLeftClickRotation.zsc；
+5. 恢复 DefaultZScript.txt / .zsc 后按上面的步骤安装。
+也可用 ZScript 面板 Load 加载 NoLeftClickRotation.txt 自动生成 .zsc。
+
+卸载
+----
+关闭 ZBrush，删除 ZPlugs64 下的 NoLeftClickRotation.zsc 和
+NoLeftClickRotationData 文件夹即可。不修改 ZBrush 安装目录，
+不写注册表/环境变量。
+
+说明
+----
+- 兼容模式受 ZBrush“同一时间只能运行一个 ZScript”限制：运行其他插件/宏时
+  事件循环会被打断，插件自动改用 F2 光标校准兜底；
+- 校准跟随当前显示缩放和 ZBrush 版本保存；更换显示缩放或版本后请重新按
+  F2 校准；
+- 插件不修改视图变换、不产生画布残影；如遇到画布残留，Ctrl+N 清空画布；
+- 若曾安装过旧版，请先删除旧文件再复制新文件。

@@ -1,0 +1,171 @@
+# -*- coding: utf-8 -*-
+"""ZBrush 2026 plugin: NoLeftClickRotation（禁用左键视图旋转）.
+
+NoLeftClickRotation.zsc 在 ZBrush 启动时通过 [FileExecute] 调用
+NoLeftClickRotation.dll；DLL 再把本文件作为官方 Python 脚本载入。
+1. 在“Z插件”菜单里添加“禁用左键视图旋转”子菜单（含启用开关）。
+2. 把判定函数注册为 zb_noleftclickrotation 模块，供 DLL 回调。
+3. DLL 子类化主窗口：左键点击一律先放行给 ZBrush，不吞掉任何消息。
+   仅当 Edit 模式、按下点位于空白画布（pixol_pick 材质索引为 0）、且
+   光标是 ZBrush 画布光标（非标准系统光标）时，DLL 在放行点击后立即
+   补发一次抬起，在旋转开始前取消该拖拽。界面滑块、按钮和自定义画布
+   UI 都使用标准系统光标，因此完全不受影响。拖动过程中光标进入模型时
+   补发按下，笔刷从进入点正常起笔，不拦截任何画笔运动。
+"""
+import ctypes
+import json
+import os
+import sys
+import types
+
+PLUGIN_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(PLUGIN_DIR, "config.json")
+DLL_PATH = os.path.join(PLUGIN_DIR, "NoLeftClickRotation.dll")
+
+# 当 DLL 通过 [FileExecute] 启动本脚本时置为 1，避免重复加载 DLL。
+IN_PROCESS = os.environ.get("NOBLANKROTATE_INPROCESS", "") == "1"
+
+
+def detect_language():
+    """Returns 'zh' or 'en', following the Windows system UI language."""
+    override = os.environ.get("NOBLANKROTATE_LANG", "").strip().lower()
+    if override in ("zh", "en"):
+        return override
+    try:
+        lang_id = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+        if (lang_id & 0x3FF) == 0x04:
+            return "zh"
+    except Exception:
+        pass
+    return "en"
+
+
+LANG = detect_language()
+if LANG == "zh":
+    PALETTE = "Zplugin:禁用左键视图旋转"
+    SWITCH_LABEL = "启用"
+    SWITCH_INFO = "左键拖空白不旋转；拖到模型自动起笔"
+else:
+    PALETTE = "Zplugin:Disable Left-Button View Rotation"
+    SWITCH_LABEL = "Enable"
+    SWITCH_INFO = "Left-drag on blank won't rotate; stroke starts when reaching the mesh"
+
+
+def load_config():
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_config(data):
+    try:
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+def on_toggle(item_path, value):
+    cfg = load_config()
+    cfg["enabled"] = bool(value)
+    save_config(cfg)
+
+
+def query(screen_x, screen_y, is_down=False):
+    """Called synchronously by NoLeftClickRotation.dll from the ZBrush UI thread."""
+    try:
+        import zbrush.commands as zbc
+        if not load_config().get("enabled", True):
+            return False
+        if not bool(zbc.get("Transform:Edit")):
+            return False
+        doc_w = zbc.get("Document:Width")
+        doc_h = zbc.get("Document:Height")
+        # ZBrush itself maps the current cursor position to canvas space, so
+        # no window/screen coordinate conversion is needed and system DPI
+        # scaling cannot skew the result.
+        px, py = zbc.get_mouse_pos(global_coordinates=False)
+        if not (0 <= px < doc_w and 0 <= py < doc_h):
+            return False
+        return float(zbc.pixol_pick(5, px, py)) == 0.0
+    except Exception:
+        return False
+
+
+def point_kind(screen_x, screen_y):
+    """Classifies a screen point for the DLL: 0=blank canvas, 1=mesh, 2=other."""
+    try:
+        import zbrush.commands as zbc
+        if not bool(zbc.get("Transform:Edit")):
+            return 2
+        doc_w = zbc.get("Document:Width")
+        doc_h = zbc.get("Document:Height")
+        px, py = zbc.get_mouse_pos(global_coordinates=False)
+        if not (0 <= px < doc_w and 0 <= py < doc_h):
+            return 2
+        mat = float(zbc.pixol_pick(5, px, py))
+        return 0 if mat == 0.0 else 1
+    except Exception:
+        return 2
+
+
+def register_query_module():
+    mod = types.ModuleType("zb_noleftclickrotation")
+    mod.query = query
+    mod.point_kind = point_kind
+    sys.modules["zb_noleftclickrotation"] = mod
+
+
+def setup_ui():
+    import zbrush.commands as zbc
+    cfg = load_config()
+    state = bool(cfg.get("enabled", True))
+    zbc.add_subpalette(PALETTE, 0)
+    zbc.add_switch(
+        PALETTE + ":" + SWITCH_LABEL,
+        state,
+        SWITCH_INFO,
+        on_toggle,
+        False,
+        0.5,
+    )
+
+
+def ensure_dll():
+    if not os.path.isfile(DLL_PATH):
+        return
+    try:
+        dll = ctypes.WinDLL(DLL_PATH)
+        install = dll.Install
+        install.restype = ctypes.c_float
+        install.argtypes = [
+            ctypes.c_char_p,
+            ctypes.c_double,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+        ]
+        install(None, 0.0, None, None)
+    except Exception:
+        pass
+
+
+def main():
+    cfg = load_config()
+    cfg.setdefault("enabled", True)
+    save_config(cfg)
+    try:
+        setup_ui()
+    except Exception:
+        pass
+    register_query_module()
+    if not IN_PROCESS:
+        ensure_dll()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        pass
