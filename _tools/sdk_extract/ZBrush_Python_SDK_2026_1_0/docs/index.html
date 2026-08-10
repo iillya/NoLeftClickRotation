@@ -1,0 +1,378 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>ZBrush Python SDK 2026.1</title>
+    <link rel="shortcut icon" href="_static/favicon.ico" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/css/bootstrap.min.css" integrity="sha512-2bBQCjcnw658Lho4nlXJcc6WkV/UxpE/sAokbXPxQNGqmNdQrWqtw26Ns9kFF/yG792pKR1Sx8/Y1Lf1XN4GKA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.13.1/font/bootstrap-icons.min.css" integrity="sha512-t7Few9xlddEmgd3oKZQahkNI4dS6l80+eGEzFQiqtyVYdvcSG2D3Iub77R20BdotfRPA9caaRkg1tyaJiPmO0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=272cc67c" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=542147e7" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/css\mxn_breadcrumbs.css?v=d6c60be8" />
+    <link rel="stylesheet" type="text/css" href="_static/css\mxn_examples.css?v=f744adab" />
+    <link rel="stylesheet" type="text/css" href="_static/css\mxn_layout.css?v=3de13c46" />
+    <link rel="stylesheet" type="text/css" href="_static/css\mxn_search.css?v=7167eada" />
+    <link rel="stylesheet" type="text/css" href="_static/css\mxn_sphinx_design.css?v=97951868" />
+    <link rel="stylesheet" type="text/css" href="_static/css\mxn_toc_view.css?v=42bae592" />
+    
+    <script src="_static/documentation_options.js?v=6f7b910f"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/mxn_search_data_aa0c9659.js"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js\mxn_containers.js?v=5646f64f"></script>
+    <script src="_static/js\mxn_search.js?v=1cfee160"></script>
+    <script src="_static/js\mxn_theme.js?v=01699a56"></script>
+    <script src="_static/js\mxn_toc_view.js?v=554f7698"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content="ZBrush Python SDK 2026.1" name="title" />
+<meta content="Contains the documentation for the ZBrush Python SDK." name="description" />
+<meta content="zbrush, python, sdk, api, code, documentation" name="keywords" />
+
+</head>
+<body>
+
+<script>SetMxnSiteTheme();</script>
+<div class="mxn-page mxn-index" id="page-content">
+<div class="mxn-navbar">
+    <style>
+        .mxn-logo-image {
+            background-image: url("_static/media/logos/zbrush_badge_black.png");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            width: 100%;
+            height: 100%;
+            aspect-ratio: 1 / 1;
+        }
+
+        body[data-bs-theme="dark"] .mxn-logo-image {
+            background-image: url("_static/media/logos/zbrush_badge_white.png");
+        }
+    </style>
+    <a href="#" class="mxn-logo" title="Home" aria-label="Home">
+        <div class="mxn-logo-image"></div>
+    </a>
+    <nav class="nav-breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="">ZBrush Python SDK 2026.1</a></li></ol></nav>
+    <div class="mxn-navbar-right">
+        <button id="theme-toggle" class="btn btn-link" title="Toggle theme" type="button">
+            <i id="theme-icon" class="bi bi-sun-fill" title="Toggle theme"></i>
+        </button><form class="input-group search-group" action="search.html" method="get">
+            <div class="mxn-search-input-wrapper" id="search-input-wrapper">
+                <input type="text" id="search-input" class="form-control" placeholder="Search ..." name="q" 
+                       autocomplete="off" spellcheck="off"/>
+            </div>
+            <script>MxnSearchUiHandler.InjectSearchShortcutHint();</script>
+        </form></div>
+</div><div class="mxn-content mxn-no-sidebar"><div class="mxn-scroll">
+<div class="mxn-banner">
+    <div class="mxn-heading">
+        <img src="_static/media/logos/Maxon_ZBrush_PythonSDK_InlineHorizontal_PrimaryOverDark.png" 
+             alt="ZBrush Logo" class="mxn-banner-logo light-theme-only"/>
+    </div>
+    <div id="mxn-banner-credit" class="mxn-credit">
+    </div>
+    <img id="mxn-banner-image" alt="Banner Image" class="mxn-banner"/>
+</div>
+<script>SetMxnSiteBanner();</script><div class="mxn-body" role="main"><div class="mxn-inner-body">
+  <section id="zbrush-python-sdk-version">
+<h1>ZBrush Python SDK 2026.1<a class="headerlink" href="#zbrush-python-sdk-version" title="Link to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<div class="mxn-layout mxn-display-flex mxn-direction-row mxn-justify-center mxn-align-stretch" style="gap: 10px;" ><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 2)) * 0.3333);" data-uri="manuals/quickstart.html"><em class="mxn-card-image bi bi-fast-forward"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">Quickstart</p>
+<p class="mxn-card-description">Take your first steps with Python scripting in ZBrush.</p>
+</div>
+</div><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 2)) * 0.3333);" data-uri="misc/changes.html"><em class="mxn-card-image bi bi-shuffle"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">Change Notes</p>
+<p class="mxn-card-description">Describes the changes in release 2026.1.0.</p>
+</div>
+</div><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 2)) * 0.3333);" data-uri="https://developers.maxon.net/forum/category/55/"><em class="mxn-card-image bi bi-chat"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">Community</p>
+<p>Join our developer community.</p>
+</div>
+</div><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 2)) * 0.3333);" data-uri="manuals/index.html"><em class="mxn-card-image bi bi-file-earmark-text"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">Manuals</p>
+<p class="mxn-card-description">Learn about fundamental concepts and workflows in the API.</p>
+</div>
+</div><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 2)) * 0.3333);" data-uri="api/index.html"><em class="mxn-card-image bi bi-braces"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">API Index</p>
+<p class="mxn-card-description">Browse the classes, functions, and other entities of the API.</p>
+</div>
+</div><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 2)) * 0.3333);" data-uri="examples/index.html"><em class="mxn-card-image bi bi-archive"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">Examples</p>
+<p class="mxn-card-description">Browse the code examples and fragments of the SDK.</p>
+</div>
+</div></div></section>
+
+</div>
+<div class="mxn-footer" role="navigation" aria-label="related navigation">
+    <div class="footer-center">
+        <div class="footer-text">
+            &copy; <script>document.write(new Date().getFullYear())</script> <a href="https://www.maxon.net">Maxon Computer GmbH</a>
+        </div>
+        <a class="footer-text" href="license.html">SDK License</a>
+        <a class="footer-text" href="https://www.maxon.net/en/legal/eula">End User License Agreement</a>
+    </div>
+</div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="search-overlay" class="d-none">
+    <div id="search-overlay-wrapper">
+        
+<div class="mxn-search-container">
+    <form class="mxn-search-form" id="search-form" method="get">
+        <h1>Search</h1>
+        <div class="input-group">
+            <input type="text" id="search-bar-top" class="form-control" placeholder="Search ..." name="q" 
+                   autocomplete="off" spellcheck="off" data-target="search.html" aria-label="Search"/>
+        </div>
+        <div class="mxn-search-facets">
+            <span class="mxn-search-label">Domain:</span>
+            <div class="mxn-form-row">
+                <div>
+                    <input class="form-check-input" type="checkbox" value="1" id="domain-api" name="d" checked />
+                    <label class="form-check-label" for="domain-api">API</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="2" id="domain-page" name="d" checked />
+                    <label class="form-check-label" for="domain-page">Manuals</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="4" id="domain-example" name="d" checked />
+                    <label class="form-check-label" for="domain-example">Examples</label>
+                </div>
+                <div class="ms-auto"></div>
+                <div class="d-flex flex-row align-items-center">
+                    <button class="mxn-subtle-button bi bi-arrow-bar-down" type="button" title="" id="btn-search-facets-visibility"></button>
+                    <button class="mxn-subtle-button bi bi-question-square" type="button" title="" id="btn-search-help-visibility"></button>
+                </div>
+            </div>
+            <!-- Facets -->
+            <span class="mxn-search-label toggle-target d-none">Entity:</span>
+            <div class="mxn-form-row toggle-target d-none" id="entitity_group">
+                <div>
+                    <input class="form-check-input" type="checkbox" value="1" id="entity-generic" name="e" checked />
+                    <label class="form-check-label" for="entity-generic">Page</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="2" id="entity-module" name="e" checked>
+                    <label class="form-check-label" for="entity-module">Module</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="4" id="entity-class" name="e" checked />
+                    <label class="form-check-label" for="entity-class">Class</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="8" id="entity-method" name="e" checked />
+                    <label class="form-check-label" for="entity-method">Method</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="16" id="entity-function" name="e" checked />
+                    <label class="form-check-label" for="entity-function">Function</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="32" id="entity-attribute" name="e" checked />
+                    <label class="form-check-label" for="entity-attribute">Attribute</label>
+                </div>
+            </div>
+            <span class="mxn-search-label toggle-target d-none">Context:</span>
+            <div class="mxn-form-row toggle-target d-none" id="context_group">
+                <div>
+                    <input class="form-check-input" type="checkbox" value="1" id="context-text" name="c" checked />
+                    <label class="form-check-label" for="context-text">Text</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="2" id="context-title" name="c" checked />
+                    <label class="form-check-label" for="context-title">Heading</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="4" id="context-code" name="c" checked />
+                    <label class="form-check-label" for="context-code">Code</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="8" id="context-name" name="c" checked />
+                    <label class="form-check-label" for="context-name">Name</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="16" id="context-signature" name="c" checked />
+                    <label class="form-check-label" for="context-signature">Signature</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="32" id="context-meta" name="c" checked />
+                    <label class="form-check-label" for="context-meta">Metadata</label>
+                </div>
+            </div>
+        </div>
+        <div class="mxn-search-details">
+            <div id="search-info"></div>
+            <div id="search-modes">
+                <button class="mxn-subtle-button fw-bold" type="button" title="" id="btn-search-join">OR</button>
+                <button class="mxn-subtle-button bi bi-funnel" type="button" title="" id="btn-search-fuzzy"></button>
+                <button class="mxn-subtle-button bi bi-card-text" type="button" title="" id="btn-result-verbosity"></button>
+                <button class="mxn-subtle-button bi bi-filter-left" type="button" title="" id="btn-result-sorting"></button>
+            </div>
+        </div>
+    </form>
+    <!-- Search results -->
+    <div class="mxn-search-content">
+        <!-- Help panel -->
+        <div class="mxn-search-help d-none" id="search-help">
+            <table class="docutils align-default" style="width: 100%; table-layout: auto">
+                <thead>
+                    <tr>
+                        <th style="white-space: nowrap"><strong>Category</strong></th>
+                        <th style="white-space: nowrap"><strong>Option</strong></th>
+                        <th><strong>Description</strong></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Query</strong></td>
+                        <td></td>
+                        <td>The search does not support special search operators. Terms are joined by default with OR unless the AND join mode is enabled. Queries can contain search literals denoted by double quotes. E.g., <code>foo bar</code> would search for documents that contain <code>foo</code> and/or <code>bar</code> (depending on the selected join option). But <code>"foo bar"</code> would search for the exact phrase "foo bar". The search is case-insensitive. Note that search literals will always implicitly enable strict search mode, even when the user has selected fuzzy mode.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i class="bi bi-arrow-bar-down"></i> / <i class="bi bi-arrow-bar-up"></i>
+                        </td>
+                        <td>Toggles the visibility of the facet selection panel.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i class="bi bi-question-square"></i> / <i class="bi bi-question-square-fill"></i>
+                        </td>
+                        <td>Toggles the visibility of this help panel.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <strong>OR</strong> / <strong>AND</strong>
+                        </td>
+                        <td>Toggles between joining search terms with a logical OR or AND. In OR mode, the search will return results that match any of the search terms, while in AND mode, it will only return results that match all of the search terms.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <i class="bi bi-funnel"></i> / <i class="bi bi-funnel-fill"></i>
+                        </td>
+                        <td>Toggles between fuzzy and strict mode when searching. In fuzzy mode, the search is more lenient and may return more results, while in strict mode, the search is more exacting. Switching modes may affect the relevance of the results.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <i class="bi bi-card-text"></i> / <i class="bi bi-usb-c"></i>
+                        </td>
+                        <td>Toggles between detailed and compact result views. The detailed view shows more information per search hit.</td>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <i class="bi bi-filter-left"></i> / <i class="bi bi-text-left"></i>
+                        </td>
+                        <td>Toggles sorting the search results by relevance only or by a combination of classification and relevance. When sorting by classification and relevance, results are grouped by their type (e.g., pages, classes, methods) and then sorted by relevance within each group.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Facets</strong></td>
+                        <td></td>
+                        <td>Facets restrict the search to specific content types. You must have at least one facet enabled per facet group to see any results. Domain is the largest facet group, enabling or disabling whole groups of content types. Entities are the next level down, allowing you to search within specific types of content such as generic pages or a function definition. Contexts are the most granular level, allowing you to search within specific contexts of the selected entity such as a code block ot the name of an entity.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Domain</strong></td>
+                        <td><i>API</i></td>
+                        <td>Enable matches within API documentation pages.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Manuals</i></td>
+                        <td>Enable matches within general documentation pages.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Examples</i></td>
+                        <td>Enable matches within example pages.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Entity</strong></td>
+                        <td><i>Page</i></td>
+                        <td>Enable matches within a page body that are not one of the following entities.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Classes</i></td>
+                        <td>Enable matches within class definitions.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Methods</i></td>
+                        <td>Enable matches within class method definitions.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Functions</i></td>
+                        <td>Enable matches within module function definitions.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Attributes</i></td>
+                        <td>Enable matches within class or module attribute definitions.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Context</strong></td>
+                        <td><i>Paragraphs</i></td>
+                        <td>
+                            Enable matches within normal text paragraphs of a page.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Headings</i></td>
+                        <td>Enable matches within the headings of a page.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Code</i></td>
+                        <td>Enable matches within code blocks of a page (e.g., in the Examples domain or code blocks embed elsewhere).</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Names</i></td>
+                        <td>
+                            Enable matches within the names of API entities. This searches the plain names (<code>func</code>), not the qualified
+                            names (<code>foo.bar.func</code>).
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Signatures</i></td>
+                        <td>
+                            Enable matches within the signatures of API entities. The signature is what is shown on top of the entity description, e.g.,
+                            <code>foo.bar.func(a: int, b: str = "Hello") -&gt; bool</code>. When you want to search for fully qualified
+                            names, you should enable this option and disable the "Names" option.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Metadata</i></td>
+                        <td>Enable matches within the metadata of entities.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="search-results"></div>
+    </div>
+</div>
+    </div>
+</div></body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/js/bootstrap.bundle.min.js" integrity="sha512-HvOjJrdwNpDbkGJIG2ZNqDlVqMo77qbs4Me4cah0HoDrfhrbA+8SBlZn1KrvAQw7cILLPFJvdwIgphzQmMm+Pw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha512-9ZKhgaFdKlsELap/dGw3Iaz5Bj+Las0XXZiRKYZaN9QArg6FtkD5rULNmNH4rTCTFxjPiBGr3MX8smRADRorDA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/minisearch@7.2.0/dist/umd/index.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</html>

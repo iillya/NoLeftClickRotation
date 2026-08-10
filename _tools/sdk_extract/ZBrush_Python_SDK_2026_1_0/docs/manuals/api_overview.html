@@ -1,0 +1,593 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>API Overview</title>
+    <link rel="shortcut icon" href="../_static/favicon.ico" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/css/bootstrap.min.css" integrity="sha512-2bBQCjcnw658Lho4nlXJcc6WkV/UxpE/sAokbXPxQNGqmNdQrWqtw26Ns9kFF/yG792pKR1Sx8/Y1Lf1XN4GKA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.13.1/font/bootstrap-icons.min.css" integrity="sha512-t7Few9xlddEmgd3oKZQahkNI4dS6l80+eGEzFQiqtyVYdvcSG2D3Iub77R20BdotfRPA9caaRkg1tyaJiPmO0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=272cc67c" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=542147e7" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/css\mxn_breadcrumbs.css?v=d6c60be8" />
+    <link rel="stylesheet" type="text/css" href="../_static/css\mxn_examples.css?v=f744adab" />
+    <link rel="stylesheet" type="text/css" href="../_static/css\mxn_layout.css?v=3de13c46" />
+    <link rel="stylesheet" type="text/css" href="../_static/css\mxn_search.css?v=7167eada" />
+    <link rel="stylesheet" type="text/css" href="../_static/css\mxn_sphinx_design.css?v=97951868" />
+    <link rel="stylesheet" type="text/css" href="../_static/css\mxn_toc_view.css?v=42bae592" />
+    
+    <script src="../_static/documentation_options.js?v=6f7b910f"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/mxn_search_data_aa0c9659.js"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js\mxn_containers.js?v=5646f64f"></script>
+    <script src="../_static/js\mxn_search.js?v=1cfee160"></script>
+    <script src="../_static/js\mxn_theme.js?v=01699a56"></script>
+    <script src="../_static/js\mxn_toc_view.js?v=554f7698"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content="API Overview" name="title" />
+<meta content="Explains the conventions and capabilities of the ZBrush API." name="description" />
+<meta content="bi-binoculars" name="icon" />
+<meta content="zbrush, python, sdk, api, code, documentation, api, overview, gui, interface, window, dialog, palette, sub-palette, note" name="keywords" />
+
+</head>
+<body>
+
+<script>SetMxnSiteTheme();</script>
+<div class="mxn-page " id="page-content">
+<div class="mxn-navbar">
+    <style>
+        .mxn-logo-image {
+            background-image: url("../_static/media/logos/zbrush_badge_black.png");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            width: 100%;
+            height: 100%;
+            aspect-ratio: 1 / 1;
+        }
+
+        body[data-bs-theme="dark"] .mxn-logo-image {
+            background-image: url("../_static/media/logos/zbrush_badge_white.png");
+        }
+    </style>
+    <a href="../index.html" class="mxn-logo" title="Home" aria-label="Home">
+        <div class="mxn-logo-image"></div>
+    </a>
+    <nav class="nav-breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../index.html">ZBrush Python SDK 2026.1</a></li><li class="breadcrumb-item dropdown"><a class="breadcrumb-link" href="index.html">Manuals</a><a class="dropdown-toggle" href="#" data-bs-toggle="dropdown"></a><ul class="dropdown-menu"><li><a class="dropdown-item" href="../api/index.html">API Index</a></li><li><a class="dropdown-item" href="../examples/index.html">Examples</a></li><li><a class="dropdown-item" href="index.html">Manuals</a></li></ul></li><li class="breadcrumb-item dropdown"><a class="breadcrumb-link" href="">API Overview</a><a class="dropdown-toggle" href="#" data-bs-toggle="dropdown"></a><ul class="dropdown-menu"><li><a class="dropdown-item" href="">API Overview</a></li><li><a class="dropdown-item" href="editor_config.html">Editor Configuration</a></li><li><a class="dropdown-item" href="importing_libraries.html">Importing Libraries</a></li><li><a class="dropdown-item" href="migrating_zscript.html">Migrating ZScript</a></li><li><a class="dropdown-item" href="python_environment.html">Python Environment</a></li><li><a class="dropdown-item" href="quickstart.html">Quickstart</a></li><li><a class="dropdown-item" href="style_guide.html">Style Guide</a></li></ul></li></ol></nav>
+    <div class="mxn-navbar-right">
+        <button id="theme-toggle" class="btn btn-link" title="Toggle theme" type="button">
+            <i id="theme-icon" class="bi bi-sun-fill" title="Toggle theme"></i>
+        </button><form class="input-group search-group" action="../search.html" method="get">
+            <div class="mxn-search-input-wrapper" id="search-input-wrapper">
+                <input type="text" id="search-input" class="form-control" placeholder="Search ..." name="q" 
+                       autocomplete="off" spellcheck="off"/>
+            </div>
+            <script>MxnSearchUiHandler.InjectSearchShortcutHint();</script>
+        </form></div>
+</div><div class="mxn-content "><div class="mxn-sidebar">  
+<div class="mxn-toc-view" data-defaultDepth="2" data-defaultClosed="[]"><div class="heading">Table of Contents</div><div class="scroll-area"><ul><li class="nested"><span class="toggle"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="arrow" fill="currentColor" viewBox="0 0 16 16"><path d="m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z"></path></svg><a href="">API Overview</a></span><ul><li class="terminal"><a href="#api-style">API Style</a></li><li class="terminal"><a href="#basic-features">Basic Features</a></li><li class="terminal"><a href="#modeling-features">Modeling Features</a></li><li class="nested"><span class="toggle"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="arrow" fill="currentColor" viewBox="0 0 16 16"><path d="m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z"></path></svg><a href="#gui-features">Gui Features</a></span><ul><li class="terminal"><a href="#palettes">Palettes</a></li><li class="terminal"><a href="#notes">Notes</a></li><li class="terminal"><a href="#item-paths">Item Paths</a></li></ul></li></ul></li><li class="terminal"><a href="#see-also">See also</a></li></ul></div><i class="bi bi-arrows-expand mxn-subtle-button expander" title="Expand or collapse TOC"></i></div>
+</div><div class="mxn-scroll"><div class="mxn-body" role="main"><div class="mxn-inner-body">
+  <section id="api-overview">
+<h1>API Overview<a class="headerlink" href="#api-overview" title="Link to this heading">¶</a></h1>
+<p>Explains the conventions and capabilities of the ZBrush API.</p>
+<p>The ZBrush Python API exposes the same functionalities as the ZScript API does but allows for harnessing the full power of the Python programming language and its ecosystem. The API is organized into three main categories:</p>
+<div class="mxn-layout mxn-display-flex mxn-direction-row mxn-justify-left mxn-align-stretch" style="gap: 10px; width: 100%;" ><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 0)) * 1.0);" data-uri="../api/zbr_cmds_gui.html"><em class="mxn-card-image bi bi-window"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">Gui API</p>
+<p class="mxn-card-description">Describes API entities for creating, querying, and manipulating GUI elements.</p>
+</div>
+</div><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 0)) * 1.0);" data-uri="../api/zbr_cmds_modeling.html"><em class="mxn-card-image bi bi-boxes"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">Modeling API</p>
+<p class="mxn-card-description">Describes API entities to interact with scene data such as tools, strokes, curves, and ZSpheres.</p>
+</div>
+</div><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 0)) * 1.0);" data-uri="../api/zbr_cmds_system.html"><em class="mxn-card-image bi bi-sliders"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">System API</p>
+<p class="mxn-card-description">Describes API entities to interact with system features such as file handling, the timeline, and more.</p>
+</div>
+</div></div><p>The following sections provide an overview of the style and capabilities of the ZBrush API.</p>
+<section id="api-style">
+<h2>API Style<a class="headerlink" href="#api-style" title="Link to this heading">¶</a></h2>
+<p>The ZBrush Python API is very procedural-imperative and GUI centered in style. Rather than being centered around functions and objects that realize abstract concepts that stand behind a GUI, it focuses on replicating user interactions in the GUI. As a result, users will find themselves working with a series of function calls to manipulate the application state, rather than creating and manipulating objects or similar workflows used by more object-oriented APIs. When we look at the <a class="reference internal" href="../examples/ex_hello_world.html"><span class="doc">Example hello_world</span></a> example, we can see this procedural style in action:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;Demonstrates how to write a basic script to create an editable cube in the center of the canvas </span>
+<span class="sd">and sets up the view.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">zbrush.commands</span> <span class="k">as</span> <span class="nn">zbc</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Runs when Zbrush executes this script.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># We set ZBrush into its 2026 configuration state, to start with a known UI state.</span>
+    <span class="n">zbc</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="mi">2026</span><span class="p">)</span>
+
+    <span class="c1"># We select the Cube 3D tool and convert it to a polymesh.</span>
+    <span class="n">zbc</span><span class="o">.</span><span class="n">press</span><span class="p">(</span><span class="s2">&quot;Tool:Cube3D&quot;</span><span class="p">)</span>
+    <span class="n">zbc</span><span class="o">.</span><span class="n">press</span><span class="p">(</span><span class="s2">&quot;Tool:Make PolyMesh3D&quot;</span><span class="p">)</span>
+
+    <span class="c1"># We draw a stroke on the canvas to place the cube. This string is a pre-recorded brush stroke.</span>
+    <span class="n">stroke</span><span class="p">:</span> <span class="n">zbc</span><span class="o">.</span><span class="n">Stroke</span> <span class="o">=</span> <span class="n">zbc</span><span class="o">.</span><span class="n">Stroke</span><span class="p">(</span>
+        <span class="s2">&quot;(ZObjStrokeV03n27%p2377BA8p191C7ACPnA63An234Fn-BF76s100672Cs100672Cs100672Cz-7E6B=H231V219H230&quot;</span>
+        <span class="s2">&quot;V216H22FV214h22E55v210AAH22Ev20C40h22D40v203C0H22Dv1F980H22DV1EEH22DV1E2h22D40v1D5C0h22DC0v1C9&quot;</span>
+        <span class="s2">&quot;80h22E40v1BD40h22EC0v1B040H22Fv1A280H22Fv19380h22EC0v18480h22DC0v17640h22C40v16980h22A80v15F40&quot;</span>
+        <span class="s2">&quot;h228C0v15740h227C0v15240h22740v14F40h226C0v14D80h22680v14C80h22640v14B80H226v14A80H226v149C0)&quot;</span><span class="p">)</span>
+    <span class="n">zbc</span><span class="o">.</span><span class="n">canvas_stroke</span><span class="p">(</span><span class="n">stroke</span><span class="p">)</span>
+    
+    <span class="c1"># Now we enable edit mode to edit the cube.</span>
+    <span class="n">zbc</span><span class="o">.</span><span class="n">press</span><span class="p">(</span><span class="s2">&quot;Transform: Edit&quot;</span><span class="p">)</span>
+
+    <span class="c1"># And finally, we rotate the camera into a 45°, 45° angle to get a better view on the cube, and</span>
+    <span class="c1"># then frame the object in the view.</span>
+    <span class="n">zbc</span><span class="o">.</span><span class="n">set_transform</span><span class="p">(</span><span class="n">x_rotate</span><span class="o">=</span><span class="mi">45</span><span class="p">,</span> <span class="n">y_rotate</span><span class="o">=</span><span class="mi">45</span><span class="p">,</span> <span class="n">z_rotate</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">zbc</span><span class="o">.</span><span class="n">press</span><span class="p">(</span><span class="s2">&quot;Transform:Fit Mesh To View&quot;</span><span class="p">)</span>
+
+
+<span class="c1"># This code, the &quot;if _name__ ...&quot; is called the main guard and ensures that the main() function</span>
+<span class="c1"># is only executed when this script is run directly, not when it is imported as a module.</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>So, this script is very literal in programmatically replicating what a user would do, by selecting the <em>Cube3D</em> tool from the tool picker, drawing it on the canvas, entering edit mode, and then adjusting the view. For setting up the tool, there also exist more abstracted functions, and for setting up the view, we could also choose a less abstracted approach than <a class="reference internal" href="../api/zbr_cmds_modeling.html#zbrush.commands.set_transform" title="zbrush.commands.set_transform"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_transform</span></code></a> by using a prerecorded stroke to rotate the camera.</p>
+<p>Automatically recorded scripts tend to be very GUI centric and literal in their style, while manually written scripts can be more abstract. However, the general style of both is heavily influenced by the GUI centric nature of the ZBrush API. And it is often preferable to embrace this GUI centric style, as it often leads to simpler and more robust scripts. It is for example often more work to use the abstracted tool functions in the <a class="reference internal" href="../api/zbr_cmds_gui.html"><span class="doc">Gui API</span></a> which operate on tool indices and IDs, rather than just pressing the button of the tool in the tool picker, using its item path.</p>
+</section>
+<section id="basic-features">
+<h2>Basic Features<a class="headerlink" href="#basic-features" title="Link to this heading">¶</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See the <a class="reference internal" href="../api/zbr_cmds_system.html"><span class="doc">System API</span></a> for an overview of system related API entities.</p>
+</div>
+<p>Due to the procedural nature of the ZBrush API, there exist no atomic types such as vectors, transforms, colors, or matrices. Instead, such data is represented via basic types such as strings, integers, and floats. Colors are represented as integers, where the individual color channels are packed into a single integer value, which can be generated with the formula <cite>R &lt;&lt; 16 | G &lt;&lt; 8 | B</cite>, or the function <a class="reference internal" href="../api/zbr_cmds_system.html#zbrush.commands.rgb" title="zbrush.commands.rgb"><code class="xref py py-func docutils literal notranslate"><span class="pre">zbrush.commands.rgb</span></code></a>.</p>
+<p>The SDK offers a vector type in its code examples which implements components unpacking so that it can be used with API functions which expect the components of a vector as separate arguments. However, this is only a convenience class defined in Python and not part of the API itself. See <a class="reference internal" href="../examples/modeling_lib_zb_math.html"><span class="doc">Example lib_zb_math</span></a> for more information.</p>
+</section>
+<section id="modeling-features">
+<h2>Modeling Features<a class="headerlink" href="#modeling-features" title="Link to this heading">¶</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See the <a class="reference internal" href="../api/zbr_cmds_modeling.html"><span class="doc">Modeling API</span></a> for an overview of modeling related API entities.</p>
+</div>
+<p>ZBrush currently only offers a shallow modelling API. The following aspects are covered:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 10.0%" />
+<col style="width: 90.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>Brushes</strong></p></td>
+<td><div class="docutils container">
+<p>Brushes have no API representation at all but can be manipulated via the UI in the same way a user could. But there is no bitmap class which would represent brushes in memory. This can be mitigated by using third party libraries and im- and exporting brush textures, but that comes with significant overhead.</p>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><strong>Curves</strong></p></td>
+<td><div class="docutils container">
+<p>Curves only provide write access via the API. Existing curves cannot be read or queried in any way. A curve is modeling input for a curve brush such as the <em>CurveStandard</em> brush that generates geometry. I.e., curves fill the role of splines in ZBrush.</p>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><strong>Tools</strong></p></td>
+<td><div class="docutils container">
+<p>Tools provide no significant API access at all at the moment. There is very limited read access via <a class="reference internal" href="../api/zbr_cmds_modeling.html#zbrush.commands.query_mesh3d" title="zbrush.commands.query_mesh3d"><code class="xref py py-func docutils literal notranslate"><span class="pre">query_mesh3d</span></code></a>, but fundamental data such as vertex positions, normals, or uvs are inaccessible. This can technically be mitigated by im- and exporting tools and using a third party library to manipulate the geometry, but that comes with significant overhead. <em>Tools</em> and <em>subtools</em> are the terms used by ZBrush to refer to polygonal geometry, where subtools are disjunct parts of a a geometry.</p>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><strong>Strokes</strong></p></td>
+<td><div class="docutils container">
+<p>Strokes provide read and write access via the API but strokes can only be recorded and played back. There is no way to create strokes programmatically. A stroke is a series of points on the canvas that represent brush input. Strokes are used to apply brush effects to the canvas or to 3D models.</p>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><strong>ZSpheres</strong></p></td>
+<td><div class="docutils container">
+<p>ZSpheres provide full read and write access with no significant limitations.</p>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="gui-features">
+<h2>Gui Features<a class="headerlink" href="#gui-features" title="Link to this heading">¶</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See the <a class="reference internal" href="../api/zbr_cmds_gui.html"><span class="doc">Gui API</span></a> for an overview of GUI related API entities.</p>
+</div>
+<p>The ZBrush API is very GUI centric and provides a rich toolset to create, manipulate, and interact with the ZBrush user interface. To embrace these strengths, one must understand the three central concepts used in the GUI API: <em>palettes</em>, <em>notes</em>, and <em>item paths</em>.</p>
+<section id="palettes">
+<h3>Palettes<a class="headerlink" href="#palettes" title="Link to this heading">¶</a></h3>
+<p>The major abstractions in ZBrush’s GUI system are <em>palettes</em> and <em>sub-palettes</em>. Palettes are top the levels items that also appear as menu entries in the menu bar of ZBrush. Palettes both bare characteristics of a menu and a window as it encapsulates both a label shown in the menu as well as the GUI area associated with that label which holds multiple interface items. Palettes can be torn off from the main menu and docked in the UI. Each palette can contain multiple sub-palettes, which are smaller sections of the palette that can be used to group related interface items.</p>
+<figure class="align-default" id="id1">
+<img alt="ZBrush Palettes" class="mxn-no-margin" src="../_images/api_overview_palette.png" />
+<figcaption>
+<p><span class="caption-text">Fig. I: Both the <em>Transform</em> menu which is expanded and the <em>Tool</em> section the right sidebar are palettes. They bare both characteristics of a menu and a window. Labeled sections within these palettes such as the <em>Deformation</em> section in the <em>Tool</em> palette or the <em>Modifiers</em> section in the <em>Transform</em> palette are sub-palettes.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>Palettes and sub-palettes can both contain buttons, sliders, and switches. Labels and images can be emulated with a button that is disabled.</p>
+<figure class="align-default" id="id2">
+<img alt="ZBrush Subpalettes" src="../_images/api_overview_gui_items.png" />
+<figcaption>
+<p><span class="caption-text">Fig. II: The <a class="reference internal" href="../api/zbr_cmds_gui.html#zbrush.commands.add_palette" title="zbrush.commands.add_palette"><code class="xref py py-func docutils literal notranslate"><span class="pre">add_palette</span></code></a> examples demonstrates all scriptable ZBrush interface elements - palettes, sub-palettes, buttons, sliders, and switches - in one example.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="notes">
+<h3>Notes<a class="headerlink" href="#notes" title="Link to this heading">¶</a></h3>
+<p>Where palettes and sub-palettes are ZBrush’s version of non-modal windows, i.e., windows the user can interact with while still being able to interact with other parts of the UI, <em>Notes</em> and <em>Messages</em> are modal windows, i.e., dialogs. A <em>Note</em> is a small window within the UI of ZBrush that is user defined and can be used to display information or gather input from the user. A message is a system dialog that is used to display important information or warnings to the user, or ask yes/no questions.</p>
+<figure class="align-default" id="id3">
+<img alt="ZBrush Notes" class="mxn-no-margin" src="../_images/api_overview_note.png" />
+<figcaption>
+<p><span class="caption-text">Fig. III: A <em>Note</em> is a modal window within the ZBrush UI that the user has to interact with before being able to continue using the application. Other than palettes and sub-palettes, notes can only contain text, buttons, and switches.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="item-paths">
+<h3>Item Paths<a class="headerlink" href="#item-paths" title="Link to this heading">¶</a></h3>
+<p>An item path is a string that uniquely identifies an interface item and is a key concept in the ZBrush API. Item paths are constructed over the interface labels as seen in the ZBrush GUI.</p>
+<figure class="align-default" id="id4">
+<img alt="Python Menu" src="../_images/api_overview_item_path_brush.png" />
+<figcaption>
+<p><span class="caption-text">Fig. IV: The <em>Brush</em> palette in ZBrush.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>To clone for example the current brush, one would use the item path <cite>Brush:Clone</cite> like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zbrush</span> <span class="kn">import</span> <span class="n">commands</span> <span class="k">as</span> <span class="n">zbc</span>
+
+<span class="c1"># Press the &quot;Clone&quot; button in the &quot;Brush&quot; palette</span>
+<span class="n">zbc</span><span class="o">.</span><span class="n">press</span><span class="p">(</span><span class="s2">&quot;Brush:Clone&quot;</span><span class="p">)</span>
+
+<span class="c1"># Or equivalently set the item value to True.</span>
+<span class="n">zbc</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;Brush:Clone&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Where <cite>Brush</cite> refers to the <em>Brush</em> palette and <cite>Clone</cite> to the <em>Clone</em> button in that palette. Similarly, one could load a new brush by using the item path <cite>Brush:Load Brush</cite>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zbrush</span> <span class="kn">import</span> <span class="n">commands</span> <span class="k">as</span> <span class="n">zbc</span>
+
+<span class="c1"># Press the &quot;Load Brush&quot; button in the &quot;Brush&quot; palette</span>
+<span class="n">zbc</span><span class="o">.</span><span class="n">press</span><span class="p">(</span><span class="s2">&quot;Brush:Load Brush&quot;</span><span class="p">)</span>
+
+<span class="c1"># These will also work because item paths are case insensitive and ignore spaces in labels.</span>
+<span class="n">zbc</span><span class="o">.</span><span class="n">press</span><span class="p">(</span><span class="s2">&quot;Brush:LoadBrush&quot;</span><span class="p">)</span>
+<span class="n">zbc</span><span class="o">.</span><span class="n">press</span><span class="p">(</span><span class="s2">&quot;brush:load brush&quot;</span><span class="p">)</span>
+<span class="n">zbc</span><span class="o">.</span><span class="n">press</span><span class="p">(</span><span class="s2">&quot;brush:loadbrush&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>From this example we can also see that item paths are case insensitive and ignore spaces. The SDK examples tend to use item paths as seen in the UI, i.e., with spaces and capitalization, to improve readability, but this is not a requirement. More complex item paths concatenate multiple levels of the GUI hierarchy using the <cite>:</cite> operator. The <em>Twist Rate</em> in the <em>Twist</em> sub-palette of the <em>Brush</em> palette for example has the item path <cite>Deformation:Twist:Twist Rate</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zbrush</span> <span class="kn">import</span> <span class="n">commands</span> <span class="k">as</span> <span class="n">zbc</span>
+
+<span class="c1"># Set the &quot;Twist Rate&quot; slider in the &quot;Twist&quot; sub-palette of the &quot;Deformation&quot; palette to 45.</span>
+<span class="n">zbc</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;Deformation:Twist:Twist Rate&quot;</span><span class="p">,</span> <span class="mf">45.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>One last not so obvious quality of item paths applies to brushes, tools, sub tools, materials, and textures and all other interface items that are presented in pickers (i.e., list style selection dialogs). All such items are always accessible via their name, even when they are not directly visible in the GUI (and only shown in a picker).</p>
+<blockquote>
+<div><p>and that is all loaded entities are directly settable via their name, i.e., item path.</p>
+</div></blockquote>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zbrush</span> <span class="kn">import</span> <span class="n">commands</span> <span class="k">as</span> <span class="n">zbc</span>
+
+<span class="c1"># Derived from the screen shot shown in Fig. I, it makes sense that this works, because</span>
+<span class="c1"># we can literally see the button named &quot;Smooth&quot; in the &quot;Brush&quot; palette.</span>
+<span class="n">zbc</span><span class="o">.</span><span class="n">press</span><span class="p">(</span><span class="s2">&quot;Brush:Smooth&quot;</span><span class="p">)</span>
+
+<span class="c1"># But this will also work, a brush only visible when we open the brush picker. All elements of list</span>
+<span class="c1"># style picker items are always accessible via their under the pallette or sub-palette the picker</span>
+<span class="c1"># belongs to; in this case the &quot;Brush&quot; palette.</span>
+<span class="n">zbc</span><span class="o">.</span><span class="n">press</span><span class="p">(</span><span class="s2">&quot;Brush:Pinch&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>Composed from UI Labels</strong></p></td>
+<td><p>Item paths are constructed from the labels of the ZBrush GUI, concatenated with colons (<cite>:</cite>) to represent hierarchy levels of pallettes and sub-palettes.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Case Insensitive and Space Agnostic</strong></p></td>
+<td><p>Item paths are case insensitive and ignore spaces.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Picker Items Accessible by Name</strong></p></td>
+<td><p>Items in pickers (like brushes, tools, materials) can be accessed directly by their names regardless of their visibility in the GUI. The parent item is the palette or sub-palette the picker belongs to.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Empty Item Path</strong></p></td>
+<td><p>The empty item path (<cite>“”</cite>) refers to the <em>Tutorial View</em> of ZBrush (i.e., the area expandable from the bottom of screen which also contains the console), the item path <cite>“Foo”</cite> would refer to a button, slider, or switch in the <em>Tutorial View</em> named <em>Foo</em> when there is no palette named <em>Foo</em>.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+</section>
+<section id="see-also">
+<h1>See also<a class="headerlink" href="#see-also" title="Link to this heading">¶</a></h1>
+<div class="mxn-layout mxn-display-flex mxn-direction-row mxn-justify-left mxn-align-stretch" style="gap: 10px; width: 100%;" ><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 1)) * 0.5);" data-uri="../api/zbr_cmds_gui.html"><em class="mxn-card-image bi bi-window"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">Gui API</p>
+<p class="mxn-card-description">Describes API entities for creating, querying, and manipulating GUI elements.</p>
+</div>
+</div><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 1)) * 0.5);" data-uri="../api/zbr_cmds_modeling.html"><em class="mxn-card-image bi bi-boxes"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">Modeling API</p>
+<p class="mxn-card-description">Describes API entities to interact with scene data such as tools, strokes, curves, and ZSpheres.</p>
+</div>
+</div><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 1)) * 0.5);" data-uri="../api/zbr_cmds_system.html"><em class="mxn-card-image bi bi-sliders"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">System API</p>
+<p class="mxn-card-description">Describes API entities to interact with system features such as file handling, the timeline, and more.</p>
+</div>
+</div><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 1)) * 0.5);" data-uri="style_guide.html"><em class="mxn-card-image bi bi-rulers"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">Style Guide</p>
+<p class="mxn-card-description">Explains the code style and conventions used in this SDK.</p>
+</div>
+</div><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 1)) * 0.5);" data-uri="importing_libraries.html"><em class="mxn-card-image bi bi-journal-code"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">Importing Libraries</p>
+<p class="mxn-card-description">Explains how to provide and import libraries in your plugins.</p>
+</div>
+</div></div></section>
+
+</div>
+<div class="mxn-footer" role="navigation" aria-label="related navigation">
+    <div class="footer-center">
+        <div class="footer-text">
+            &copy; <script>document.write(new Date().getFullYear())</script> <a href="https://www.maxon.net">Maxon Computer GmbH</a>
+        </div>
+        <a class="footer-text" href="../license.html">SDK License</a>
+        <a class="footer-text" href="https://www.maxon.net/en/legal/eula">End User License Agreement</a>
+    </div>
+</div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="search-overlay" class="d-none">
+    <div id="search-overlay-wrapper">
+        
+<div class="mxn-search-container">
+    <form class="mxn-search-form" id="search-form" method="get">
+        <h1>Search</h1>
+        <div class="input-group">
+            <input type="text" id="search-bar-top" class="form-control" placeholder="Search ..." name="q" 
+                   autocomplete="off" spellcheck="off" data-target="../search.html" aria-label="Search"/>
+        </div>
+        <div class="mxn-search-facets">
+            <span class="mxn-search-label">Domain:</span>
+            <div class="mxn-form-row">
+                <div>
+                    <input class="form-check-input" type="checkbox" value="1" id="domain-api" name="d" checked />
+                    <label class="form-check-label" for="domain-api">API</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="2" id="domain-page" name="d" checked />
+                    <label class="form-check-label" for="domain-page">Manuals</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="4" id="domain-example" name="d" checked />
+                    <label class="form-check-label" for="domain-example">Examples</label>
+                </div>
+                <div class="ms-auto"></div>
+                <div class="d-flex flex-row align-items-center">
+                    <button class="mxn-subtle-button bi bi-arrow-bar-down" type="button" title="" id="btn-search-facets-visibility"></button>
+                    <button class="mxn-subtle-button bi bi-question-square" type="button" title="" id="btn-search-help-visibility"></button>
+                </div>
+            </div>
+            <!-- Facets -->
+            <span class="mxn-search-label toggle-target d-none">Entity:</span>
+            <div class="mxn-form-row toggle-target d-none" id="entitity_group">
+                <div>
+                    <input class="form-check-input" type="checkbox" value="1" id="entity-generic" name="e" checked />
+                    <label class="form-check-label" for="entity-generic">Page</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="2" id="entity-module" name="e" checked>
+                    <label class="form-check-label" for="entity-module">Module</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="4" id="entity-class" name="e" checked />
+                    <label class="form-check-label" for="entity-class">Class</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="8" id="entity-method" name="e" checked />
+                    <label class="form-check-label" for="entity-method">Method</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="16" id="entity-function" name="e" checked />
+                    <label class="form-check-label" for="entity-function">Function</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="32" id="entity-attribute" name="e" checked />
+                    <label class="form-check-label" for="entity-attribute">Attribute</label>
+                </div>
+            </div>
+            <span class="mxn-search-label toggle-target d-none">Context:</span>
+            <div class="mxn-form-row toggle-target d-none" id="context_group">
+                <div>
+                    <input class="form-check-input" type="checkbox" value="1" id="context-text" name="c" checked />
+                    <label class="form-check-label" for="context-text">Text</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="2" id="context-title" name="c" checked />
+                    <label class="form-check-label" for="context-title">Heading</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="4" id="context-code" name="c" checked />
+                    <label class="form-check-label" for="context-code">Code</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="8" id="context-name" name="c" checked />
+                    <label class="form-check-label" for="context-name">Name</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="16" id="context-signature" name="c" checked />
+                    <label class="form-check-label" for="context-signature">Signature</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="32" id="context-meta" name="c" checked />
+                    <label class="form-check-label" for="context-meta">Metadata</label>
+                </div>
+            </div>
+        </div>
+        <div class="mxn-search-details">
+            <div id="search-info"></div>
+            <div id="search-modes">
+                <button class="mxn-subtle-button fw-bold" type="button" title="" id="btn-search-join">OR</button>
+                <button class="mxn-subtle-button bi bi-funnel" type="button" title="" id="btn-search-fuzzy"></button>
+                <button class="mxn-subtle-button bi bi-card-text" type="button" title="" id="btn-result-verbosity"></button>
+                <button class="mxn-subtle-button bi bi-filter-left" type="button" title="" id="btn-result-sorting"></button>
+            </div>
+        </div>
+    </form>
+    <!-- Search results -->
+    <div class="mxn-search-content">
+        <!-- Help panel -->
+        <div class="mxn-search-help d-none" id="search-help">
+            <table class="docutils align-default" style="width: 100%; table-layout: auto">
+                <thead>
+                    <tr>
+                        <th style="white-space: nowrap"><strong>Category</strong></th>
+                        <th style="white-space: nowrap"><strong>Option</strong></th>
+                        <th><strong>Description</strong></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Query</strong></td>
+                        <td></td>
+                        <td>The search does not support special search operators. Terms are joined by default with OR unless the AND join mode is enabled. Queries can contain search literals denoted by double quotes. E.g., <code>foo bar</code> would search for documents that contain <code>foo</code> and/or <code>bar</code> (depending on the selected join option). But <code>"foo bar"</code> would search for the exact phrase "foo bar". The search is case-insensitive. Note that search literals will always implicitly enable strict search mode, even when the user has selected fuzzy mode.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i class="bi bi-arrow-bar-down"></i> / <i class="bi bi-arrow-bar-up"></i>
+                        </td>
+                        <td>Toggles the visibility of the facet selection panel.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i class="bi bi-question-square"></i> / <i class="bi bi-question-square-fill"></i>
+                        </td>
+                        <td>Toggles the visibility of this help panel.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <strong>OR</strong> / <strong>AND</strong>
+                        </td>
+                        <td>Toggles between joining search terms with a logical OR or AND. In OR mode, the search will return results that match any of the search terms, while in AND mode, it will only return results that match all of the search terms.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <i class="bi bi-funnel"></i> / <i class="bi bi-funnel-fill"></i>
+                        </td>
+                        <td>Toggles between fuzzy and strict mode when searching. In fuzzy mode, the search is more lenient and may return more results, while in strict mode, the search is more exacting. Switching modes may affect the relevance of the results.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <i class="bi bi-card-text"></i> / <i class="bi bi-usb-c"></i>
+                        </td>
+                        <td>Toggles between detailed and compact result views. The detailed view shows more information per search hit.</td>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <i class="bi bi-filter-left"></i> / <i class="bi bi-text-left"></i>
+                        </td>
+                        <td>Toggles sorting the search results by relevance only or by a combination of classification and relevance. When sorting by classification and relevance, results are grouped by their type (e.g., pages, classes, methods) and then sorted by relevance within each group.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Facets</strong></td>
+                        <td></td>
+                        <td>Facets restrict the search to specific content types. You must have at least one facet enabled per facet group to see any results. Domain is the largest facet group, enabling or disabling whole groups of content types. Entities are the next level down, allowing you to search within specific types of content such as generic pages or a function definition. Contexts are the most granular level, allowing you to search within specific contexts of the selected entity such as a code block ot the name of an entity.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Domain</strong></td>
+                        <td><i>API</i></td>
+                        <td>Enable matches within API documentation pages.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Manuals</i></td>
+                        <td>Enable matches within general documentation pages.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Examples</i></td>
+                        <td>Enable matches within example pages.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Entity</strong></td>
+                        <td><i>Page</i></td>
+                        <td>Enable matches within a page body that are not one of the following entities.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Classes</i></td>
+                        <td>Enable matches within class definitions.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Methods</i></td>
+                        <td>Enable matches within class method definitions.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Functions</i></td>
+                        <td>Enable matches within module function definitions.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Attributes</i></td>
+                        <td>Enable matches within class or module attribute definitions.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Context</strong></td>
+                        <td><i>Paragraphs</i></td>
+                        <td>
+                            Enable matches within normal text paragraphs of a page.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Headings</i></td>
+                        <td>Enable matches within the headings of a page.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Code</i></td>
+                        <td>Enable matches within code blocks of a page (e.g., in the Examples domain or code blocks embed elsewhere).</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Names</i></td>
+                        <td>
+                            Enable matches within the names of API entities. This searches the plain names (<code>func</code>), not the qualified
+                            names (<code>foo.bar.func</code>).
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Signatures</i></td>
+                        <td>
+                            Enable matches within the signatures of API entities. The signature is what is shown on top of the entity description, e.g.,
+                            <code>foo.bar.func(a: int, b: str = "Hello") -&gt; bool</code>. When you want to search for fully qualified
+                            names, you should enable this option and disable the "Names" option.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Metadata</i></td>
+                        <td>Enable matches within the metadata of entities.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="search-results"></div>
+    </div>
+</div>
+    </div>
+</div></body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/js/bootstrap.bundle.min.js" integrity="sha512-HvOjJrdwNpDbkGJIG2ZNqDlVqMo77qbs4Me4cah0HoDrfhrbA+8SBlZn1KrvAQw7cILLPFJvdwIgphzQmMm+Pw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha512-9ZKhgaFdKlsELap/dGw3Iaz5Bj+Las0XXZiRKYZaN9QArg6FtkD5rULNmNH4rTCTFxjPiBGr3MX8smRADRorDA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/minisearch@7.2.0/dist/umd/index.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</html>

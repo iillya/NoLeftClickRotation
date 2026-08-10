@@ -1,0 +1,9 @@
+bp 1405e4d90
+run
+log "HIT"
+log cip
+log rcx
+log rsp
+log "STACK"
+dq rsp, L4
+detach

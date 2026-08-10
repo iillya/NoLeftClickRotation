@@ -1,0 +1,55 @@
+/* Overrides for sphinx design elements */
+
+/*--- Dropdowns ---*/
+.sd-dropdown {
+    border: none !important;
+    border-radius: var(--brd-radius-normal) !important;
+}
+
+.sd-dropdown .sd-summary-text {
+    color: var(--col-fg-link);
+    font-weight: 400;
+}
+
+details[open] .sd-summary-text {
+    color: var(--col-fg-text-light) !important;
+}
+
+.sd-dropdown .sd-card-body {
+    border: none !important;
+    border-radius: var(--brd-radius-normal) !important;
+}
+
+details .sd-card-header,
+details[open] .sd-card-header {
+    border: none !important;
+    border-radius: var(--brd-radius-normal) !important;
+}
+
+.sd-card-header:hover{
+    background-color: var(--col-fg-light) !important;
+}
+
+.sd-summary-content {
+    background-color: var(--col-fg-lighter) !important;
+    margin-top: 10px;
+}
+
+/*--- Tabs ---*/
+
+.sd-tab-set>label {
+    border-bottom: none;
+    border-bottom: var(--brd-solid-1px-light);
+}
+
+.sd-tab-set>input:not(:checked)+label:hover,
+.sd-tab-set>input:checked+label {
+    color: var(--col-fg-text-accent);
+    border-bottom-color: var(--col-fg-text-accent);
+}
+
+.sd-tab-content {
+    /* box-shadow: 0 -0.0625rem var(--sd-color-tabs-overline),0 .0625rem var(--sd-color-tabs-underline); */
+    box-shadow: none;
+    border-top: var(--brd-solid-1px-light);
+}

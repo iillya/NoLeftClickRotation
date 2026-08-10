@@ -1,0 +1,73 @@
+/* --- Styles for the mxn-breadcrumbs extension ------------------------------------------------- */
+
+/* Shorten the breadcrumbs on small screens to the root and the current page level */
+@media (max-width: 1000px) {
+    .mxn-navbar .breadcrumb-item {
+        display: none;
+    }
+
+    .mxn-navbar .breadcrumb-item:first-child {
+        display: inline;
+    }
+
+    .mxn-navbar .breadcrumb-item:last-child {
+        display: inline;
+    }
+}
+
+/* On even smaller screens, hide the current page level too */
+@media (max-width: 800px) {
+
+    .mxn-navbar .breadcrumb-item:last-child {
+        display: none;
+    }
+
+    .breadcrumb-item+.breadcrumb-item::before {
+        display: none;
+    }
+}
+
+/* And finnaly, hide the breadcrumbs completely on very small screens */
+@media (max-width: 580px) {
+    .mxn-navbar .breadcrumb {
+        display: none;
+    }
+}
+
+/* Styles for the breadcrumbs */
+
+.mxn-navbar .breadcrumb {
+    margin-bottom: 0;
+}
+
+.mxn-navbar .breadcrumb-item,
+.mxn-navbar .breadcrumb a,
+.mxn-navbar .breadcrumb a:visited,
+.mxn-navbar .breadcrumb .dropdown-menu a, 
+.mxn-navbar .breadcrumb .dropdown-menu a:visited {
+    font-size: var(--fnt-size-small);
+    color: var(--col-fg-text);
+}
+
+.mxn-navbar .breadcrumb .dropdown-menu li {
+    margin: 0;
+}
+
+.breadcrumb .dropdown-toggle::after {
+    margin-left: var(--spc-small);
+}
+
+.mxn-navbar .breadcrumb .dropdown-menu a:hover {
+    background-color: var(--col-fg-light);
+    text-decoration: none;
+}
+
+.mxn-navbar .breadcrumb .dropdown-menu a:active {
+    background-color: var(--col-fg-light);
+}
+
+.mxn-navbar .breadcrumb .dropdown-menu {
+    border: var(--brd-solid-1px-normal);
+    box-shadow: var(--shd-normal);
+    background-color: var(--col-bg-navbar);
+}

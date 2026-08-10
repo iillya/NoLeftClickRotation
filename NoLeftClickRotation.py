@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
-"""临时诊断：验证 0x1412D88A0 入口 [rdx+0xa0] 的命中结果是否可用。
+"""NoLeftClickRotation（禁用左键视图旋转）- 单文件 Python 插件（ZBrush 2026）。
 
-只读钩子：每帧把 [rdx+0xa0]（ZBrush 自己的"光标是否在模型上"命中结果）
-抄到存根内存；左键按住期间定时采样并显示到状态栏 + 写日志。
-0 = 空白画布，非 0 = 模型。
+原理：
+1. 相机锁定：插件启用期间保持 Draw:Lock Camera 开启，左键拖空白不旋转、
+   Alt+左键不平移（用官方 toggle 切换，锁定参考点同步更新）。
+2. 右键临时解锁：右键按住时解锁相机，右键拖动照常旋转；松开后延迟 1ms
+   重新锁定（避免旋转手势未结束时锁定触发回弹）。
+3. 不吞任何消息、不合成任何鼠标事件，界面按钮/滑块完全不受影响。
+4. 调试辅助：ZBrush 顶部实时显示当前鼠标位置的 pixol_pick 值（mat）与
+   状态，并同步写入 %TEMP%\\nlr_debug.log。
 """
 
 import ctypes
 import os
-import struct
 import time
 from ctypes import wintypes
 
 DEBUG_LOG: str = os.path.join(
-    os.environ.get("TEMP", r"C:\Users\liuwenbo\AppData\Local\Temp"), "nlr_hit.log"
+    os.environ.get("TEMP", r"C:\Users\liuwenbo\AppData\Local\Temp"), "nlr_debug.log"
 )
 
 WM_LBUTTONDOWN = 0x0201
@@ -21,27 +25,31 @@ WM_LBUTTONUP = 0x0202
 WM_TIMER = 0x0113
 
 VK_LBUTTON = 0x01
-TIMER_ID = 0x4E4C5448  # 'NLTH'
-SUBCLASS_ID = 0x4E4C5448
+VK_RBUTTON = 0x02
+VK_CONTROL = 0x11
+VK_MENU = 0x12
 
-MEM_COMMIT = 0x1000
-MEM_RESERVE = 0x2000
-PAGE_READWRITE = 0x04
-PAGE_EXECUTE_READWRITE = 0x40
+SUBCLASS_ID = 0x4E4C524E
+SAMPLE_TIMER_ID = 0x4E4C5253
+
+RELOCK_DELAY: float = 0.001
+SAMPLE_INTERVAL: float = 0.04
+
+ST_IDLE = 0
+ST_STROKING = 1
 
 LRESULT = ctypes.c_ssize_t
 WPARAM = ctypes.c_size_t
 LPARAM = ctypes.c_ssize_t
+
+user32 = ctypes.WinDLL("user32")
+comctl32 = ctypes.WinDLL("comctl32")
 
 SubclassProcType = ctypes.WINFUNCTYPE(
     LRESULT, wintypes.HWND, wintypes.UINT, WPARAM, LPARAM,
     ctypes.c_void_p, ctypes.c_void_p,
 )
 WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
-
-user32 = ctypes.windll.user32
-comctl32 = ctypes.WinDLL("comctl32")
-kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 
 user32.EnumWindows.restype = wintypes.BOOL
 user32.EnumWindows.argtypes = [WNDENUMPROC, wintypes.LPARAM]
@@ -51,12 +59,10 @@ user32.GetWindowThreadProcessId.restype = wintypes.DWORD
 user32.GetWindowThreadProcessId.argtypes = [
     wintypes.HWND, ctypes.POINTER(wintypes.DWORD),
 ]
-user32.GetAsyncKeyState.restype = ctypes.c_short
-user32.GetAsyncKeyState.argtypes = [ctypes.c_int]
 user32.SetTimer.restype = ctypes.c_void_p
 user32.SetTimer.argtypes = [wintypes.HWND, ctypes.c_void_p, wintypes.UINT, ctypes.c_void_p]
-user32.KillTimer.restype = wintypes.BOOL
-user32.KillTimer.argtypes = [wintypes.HWND, ctypes.c_void_p]
+user32.GetAsyncKeyState.restype = ctypes.c_short
+user32.GetAsyncKeyState.argtypes = [ctypes.c_int]
 
 comctl32.SetWindowSubclass.restype = wintypes.BOOL
 comctl32.SetWindowSubclass.argtypes = [
@@ -65,184 +71,237 @@ comctl32.SetWindowSubclass.argtypes = [
 comctl32.DefSubclassProc.restype = LRESULT
 comctl32.DefSubclassProc.argtypes = [wintypes.HWND, wintypes.UINT, WPARAM, LPARAM]
 
-kernel32.GetModuleHandleW.restype = wintypes.HMODULE
-kernel32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
-kernel32.VirtualAlloc.restype = ctypes.c_void_p
-kernel32.VirtualAlloc.argtypes = [
-    ctypes.c_void_p, ctypes.c_size_t, wintypes.DWORD, wintypes.DWORD,
-]
-kernel32.VirtualProtect.restype = wintypes.BOOL
-kernel32.VirtualProtect.argtypes = [
-    ctypes.c_void_p, ctypes.c_size_t, wintypes.DWORD,
-    ctypes.POINTER(wintypes.DWORD),
-]
+# ---------------- 配置 ----------------
 
-# ---------------- 命中记录钩子 ----------------
+PLUGIN_DIR: str = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH: str = os.path.join(PLUGIN_DIR, "config.txt")
 
-HIT_RVA = 0x12D88A0
-HIT_ORIG = bytes.fromhex("488954241048894c240855574155488dac2490c9ffff")
+_enabled: bool = True
 
-# 0x00 cmp byte [rip+0x59],0        flag@stub+0x60
-# 0x07 je +0x11 -> 0x1A（PASS：复刻原序言）
-# 0x09 mov rax,[rdx+0xa0]
-# 0x0D mov [rip+0x58],rax           value@stub+0x6C
-# 0x14 jmp +0x04 -> 0x1A（PASS）
-# 0x16 nop*4
-# 0x1A 22 字节原序言（必须复刻，否则栈帧错乱崩溃）
-# 0x30 mov rax, cont; jmp rax
-_HIT_STUB_CODE: bytes = bytes([
-    0x80, 0x3D, 0x59, 0x00, 0x00, 0x00, 0x00,
-    0x74, 0x11,
-    0x48, 0x8B, 0x42, 0xA0,
-    0x48, 0x89, 0x05, 0x58, 0x00, 0x00, 0x00,
-    0xEB, 0x04,
-    0x90, 0x90, 0x90, 0x90,
-])
 
-_hit = {"addr": 0, "stub": 0, "active": False}
+def _read_config() -> None:
+    global _enabled
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        if lines:
+            _enabled = lines[0].strip() != "0"
+    except Exception:
+        _enabled = True
+
+
+def _save_config() -> None:
+    try:
+        tmp = CONFIG_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write("1\n" if _enabled else "0\n")
+        os.replace(tmp, CONFIG_PATH)
+    except Exception:
+        pass
+
+
+def load_enabled() -> bool:
+    return _enabled
+
+
+def save_enabled(value: bool) -> None:
+    global _enabled
+    _enabled = bool(value)
+    _save_config()
+
+
+# ---------------- 语言与界面 ----------------
+
+
+def detect_language() -> str:
+    try:
+        lang_id: int = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+        if (lang_id & 0x3FF) == 0x04:
+            return "zh"
+    except Exception:
+        pass
+    return "en"
+
+
+LANG: str = detect_language()
+if LANG == "zh":
+    PLUGIN_NAME: str = "禁用左键视图旋转"
+    SWITCH_LABEL: str = "启用"
+    SWITCH_INFO: str = (
+        "锁定相机：左键拖空白不旋转、Alt+左键不平移；右键按住可旋转。"
+    )
+else:
+    PLUGIN_NAME = "Disable Left-Button View Rotation"
+    SWITCH_LABEL = "Enable"
+    SWITCH_INFO = (
+        "Camera stays locked: left-drag on blank canvas won't rotate or pan; "
+        "hold the right button to rotate."
+    )
+
+PALETTE: str = "Zplugin:" + PLUGIN_NAME
+BODY: str = PALETTE + ":Body"
+SWITCH_PATH: str = BODY + ":" + SWITCH_LABEL
+
+
+def on_toggle(sender: str, value: bool) -> None:
+    save_enabled(bool(value))
+    if not value:
+        _restore_camera()
+
+
+def setup_ui() -> None:
+    import zbrush.commands as zbc
+
+    if zbc.exists(PALETTE):
+        zbc.close(PALETTE)
+    if zbc.exists(BODY):
+        zbc.close(BODY)
+    zbc.add_subpalette(PALETTE, title_mode=0)
+    zbc.add_subpalette(BODY, title_mode=2)
+    zbc.add_switch(SWITCH_PATH, load_enabled(), SWITCH_INFO, on_toggle,
+                   initially_disabled=False, width=1.0)
+
+
+# ---------------- 相机锁定 ----------------
+
+LOCK_CAMERA_PATH: str = "Draw:Lock Camera"
+
+
+def _get_lock_state() -> bool:
+    try:
+        import zbrush.commands as zbc
+        return bool(float(zbc.get(LOCK_CAMERA_PATH)))
+    except Exception:
+        return True
+
+
+def _apply_lock(want: bool) -> None:
+    try:
+        import zbrush.commands as zbc
+        if _get_lock_state() == want:
+            return
+        try:
+            zbc.toggle(LOCK_CAMERA_PATH)
+        except Exception:
+            pass
+        if _get_lock_state() != want:
+            try:
+                zbc.set(LOCK_CAMERA_PATH, 1.0 if want else 0.0)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+def _restore_camera() -> None:
+    try:
+        import zbrush.commands as zbc
+        if _get_lock_state():
+            try:
+                zbc.toggle(LOCK_CAMERA_PATH)
+            except Exception:
+                zbc.set(LOCK_CAMERA_PATH, 0.0)
+    except Exception:
+        pass
+
+
+def _right_down() -> bool:
+    try:
+        return bool(user32.GetAsyncKeyState(VK_RBUTTON) & 0x8000)
+    except Exception:
+        return False
+
+
+_right_down_state: bool = False
+_right_up_time: float = 0.0
+
+
+def _camera_sync() -> None:
+    global _right_down_state, _right_up_time
+    if not load_enabled():
+        return
+    down = _right_down()
+    if not down and _right_down_state:
+        _right_up_time = time.monotonic()
+    _right_down_state = down
+    if down:
+        _right_up_time = 0.0
+        _apply_lock(False)
+    elif _right_up_time == 0.0 or time.monotonic() - _right_up_time >= RELOCK_DELAY:
+        _right_up_time = 0.0
+        _apply_lock(True)
+
+
+# ---------------- 采样显示 ----------------
+
+_hwnd = None
+_state: int = ST_IDLE
+_last_mesh: bool = False
+_last_sample: float = 0.0
+_last_shown: str = ""
+
+
+def _sample_mat():
+    try:
+        import zbrush.commands as zbc
+        x, y = zbc.get_mouse_pos(global_coordinates=False)
+        return float(zbc.pixol_pick(5, float(x), float(y)))
+    except Exception as e:
+        return repr(e)
+
+
+def _sample_tick() -> None:
+    global _last_mesh, _last_sample
+    now = time.monotonic()
+    if now - _last_sample < SAMPLE_INTERVAL:
+        return
+    _last_sample = now
+    m = _sample_mat()
+    if isinstance(m, float):
+        _last_mesh = m != 0.0
+
+
+def _show_status() -> None:
+    global _last_shown
+    try:
+        m = _sample_mat()
+        m_txt = ("%.1f" % m) if isinstance(m, float) else "err"
+        state_txt = ("idle", "stroke")[_state] if 0 <= _state <= 1 else "?"
+        txt = "NLC mat=%s %s" % (m_txt, state_txt)
+        if txt == _last_shown:
+            return
+        _last_shown = txt
+        import zbrush.commands as zbc
+        zbc.set_notebar_text(txt)
+    except Exception:
+        pass
 
 
 def _dlog(line: str) -> None:
     try:
         with open(DEBUG_LOG, "a", encoding="utf-8") as f:
-            f.write("%s %s\n" % (time.strftime("%H:%M:%S"), line))
+            f.write("%s %s\n" % (time.strftime("%H:%M:%S.%f")[:-3], line))
     except Exception:
         pass
-
-
-def _write_bytes(addr: int, data: bytes) -> bool:
-    try:
-        old = wintypes.DWORD()
-        if not kernel32.VirtualProtect(
-            ctypes.c_void_p(addr), len(data), PAGE_READWRITE, ctypes.byref(old)
-        ):
-            return False
-        ctypes.memmove(addr, data, len(data))
-        kernel32.VirtualProtect(
-            ctypes.c_void_p(addr), len(data), old.value, ctypes.byref(old)
-        )
-        return True
-    except Exception:
-        return False
-
-
-def _hit_install() -> bool:
-    if _hit["active"]:
-        return True
-    base = int(kernel32.GetModuleHandleW(None) or 0)
-    if not base:
-        _dlog("install FAIL no base")
-        return False
-    addr = base + HIT_RVA
-    if ctypes.string_at(addr, len(HIT_ORIG)) != HIT_ORIG:
-        _dlog("install FAIL orig mismatch: %s" % ctypes.string_at(addr, 22).hex())
-        return False
-    page = kernel32.VirtualAlloc(None, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)
-    if not page:
-        _dlog("install FAIL alloc")
-        return False
-    page = int(page)
-    stb = bytearray(_HIT_STUB_CODE)
-    stb += HIT_ORIG  # 0x1A..0x30 复刻原序言
-    cont = addr + len(HIT_ORIG)
-    stb += b"\x48\xB8" + struct.pack("<Q", cont) + b"\xFF\xE0"
-    while len(stb) < 0x60:
-        stb.append(0xCC)
-    stb += b"\x00" * 16  # 0x60 flag + 填充 + 0x6C value
-    ctypes.memmove(page, bytes(stb), len(stb))
-    ctypes.c_ubyte.from_address(page + 0x60).value = 0
-    # 入口补丁用 rax（不碰 r11），22 字节
-    patch = b"\x48\xB8" + struct.pack("<Q", page) + b"\xFF\xE0" + b"\x90" * 10
-    if not _write_bytes(addr, patch):
-        _dlog("install FAIL patch")
-        return False
-    _hit.update(addr=addr, stub=page, active=True)
-    _dlog("HIT hook OK addr=%#x stub=%#x" % (addr, page))
-    return True
-
-
-def _hit_set_record(on: bool) -> None:
-    if _hit["active"]:
-        ctypes.c_ubyte.from_address(_hit["stub"] + 0x60).value = 1 if on else 0
-
-
-def _hit_value() -> int:
-    if not _hit["active"]:
-        return 0
-    return ctypes.c_uint64.from_address(_hit["stub"] + 0x6C).value
-
-
-# ---------------- 窗口子类 + 显示 ----------------
-
-_hwnd = None
-_last_disp = 0.0
-_last_sample = 0.0
-_last_move_log = 0.0
-
-
-def _sample_pixol(tag: str) -> None:
-    """采样一次坐标/HIT/pixol 并写日志（节流）。"""
-    global _last_sample
-    now = time.monotonic()
-    if now - _last_sample < 0.1:
-        return
-    _last_sample = now
-    try:
-        import zbrush.commands as zbc
-
-        px, py = zbc.get_mouse_pos(global_coordinates=False)
-        mat = float(zbc.pixol_pick(5, px, py))
-        nx = float(zbc.pixol_pick(6, px, py))
-        ny = float(zbc.pixol_pick(7, px, py))
-        nz = float(zbc.pixol_pick(8, px, py))
-        kind = 1 if (mat != 0.0 or nx != 0.0 or ny != 0.0 or nz != 0.0) else 0
-        _dlog("%s L=1 pos=(%.0f,%.0f) HIT=%#x mat=%g n=(%.3f,%.3f,%.3f) kind=%d"
-              % (tag, px, py, _hit_value(), mat, nx, ny, nz, kind))
-    except Exception as e:
-        _dlog("%s sample err %r" % (tag, e))
-
-
-def _update_display() -> None:
-    global _last_disp
-    now = time.monotonic()
-    if now - _last_disp < 0.15:
-        return
-    _last_disp = now
-    v = _hit_value()
-    left = bool(user32.GetAsyncKeyState(VK_LBUTTON) & 0x8000)
-    txt = "HIT=%d L=%d" % (1 if v else 0, int(left))
-    try:
-        import zbrush.commands as zbc
-        zbc.set_notebar_text(txt)
-    except Exception:
-        pass
-    if left:
-        _dlog("left=1 HIT=0x%x" % v)
 
 
 def _handle_message(hwnd, msg, wparam, lparam) -> int:
+    global _state
     try:
-        if msg == WM_LBUTTONDOWN:
-            _hit_set_record(True)
-        elif msg == WM_LBUTTONUP:
-            _hit_set_record(False)
-        elif msg == WM_TIMER and wparam == TIMER_ID:
-            left = bool(user32.GetAsyncKeyState(VK_LBUTTON) & 0x8000)
-            _hit_set_record(left)
-            if left:
-                _sample_pixol("timer")
-            _update_display()
+        if msg == WM_TIMER and wparam == SAMPLE_TIMER_ID:
+            _camera_sync()
+            _sample_tick()
+            _show_status()
             return 0
-        elif msg == 0x0200:  # WM_MOUSEMOVE
-            left = bool(user32.GetAsyncKeyState(VK_LBUTTON) & 0x8000)
-            if left:
-                now = time.monotonic()
-                if now - _last_move_log >= 0.05:
-                    _last_move_log = now
-                    px = lparam & 0xFFFF
-                    py = (lparam >> 16) & 0xFFFF
-                    _dlog("MOVE pos=(%d,%d) L=1" % (px, py))
-                _sample_pixol("move")
+
+        if msg == WM_LBUTTONDOWN:
+            _state = ST_STROKING if _last_mesh else ST_IDLE
+            _dlog("DOWN last_mesh=%s" % _last_mesh)
+            return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
+
+        if msg == WM_LBUTTONUP:
+            _state = ST_IDLE
+            return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
     except Exception:
         pass
     return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
@@ -279,35 +338,35 @@ def _enum_find_zbrush(hwnd, lparam) -> bool:
 _enum_callback = _enum_find_zbrush
 
 
-def _find_window():
-    _enum_result[0] = None
-    try:
-        user32.EnumWindows(_enum_find_zbrush, 0)
-    except Exception:
-        pass
-    return _enum_result[0]
-
-
 def main() -> None:
-    global _hwnd
     try:
         with open(DEBUG_LOG, "w", encoding="utf-8") as f:
-            f.write("=== nlr hit test ===\n")
+            f.write("=== nlr lock-camera ===\n")
     except Exception:
         pass
     _dlog("main start")
-    if _hit_install():
-        hwnd = _find_window()
-        for _ in range(20):
-            if hwnd:
-                break
-            time.sleep(0.5)
-            hwnd = _find_window()
-        _hwnd = hwnd
+    _read_config()
+    try:
+        setup_ui()
+    except Exception:
+        pass
+    hwnd = None
+    for _ in range(20):
+        _enum_result[0] = None
+        try:
+            user32.EnumWindows(_enum_find_zbrush, 0)
+        except Exception:
+            pass
+        hwnd = _enum_result[0]
         if hwnd:
-            comctl32.SetWindowSubclass(hwnd, _subclass_proc, SUBCLASS_ID, 0)
-            user32.SetTimer(hwnd, TIMER_ID, 50, None)
-            _dlog("ready hwnd=%s" % (hwnd,))
+            break
+        time.sleep(0.5)
+    global _hwnd
+    _hwnd = hwnd
+    if hwnd:
+        comctl32.SetWindowSubclass(hwnd, _subclass_proc, SUBCLASS_ID, 0)
+        user32.SetTimer(hwnd, SAMPLE_TIMER_ID, 20, None)
+        _dlog("ready")
 
 
 if __name__ == "__main__":

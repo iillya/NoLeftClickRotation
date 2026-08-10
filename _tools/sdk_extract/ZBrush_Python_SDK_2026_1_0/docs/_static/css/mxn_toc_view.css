@@ -1,0 +1,129 @@
+/* --- Foldable TOC extension ------------------------------------------------------------------- */
+
+:root {
+    --sze-foldable-toc-height: calc(100vh - 200px);
+    --sze-foldable-toc-offset: calc(var(--spc-larger) + 14px);
+    --fnt-size-toc: 0.95rem;
+}
+
+.mxn-toc-view {
+    font-size: var(--fnt-size-toc);
+    height: var(--sze-foldable-toc-height);
+    padding-right: var(--spc-medium);
+    position: relative;
+}
+
+.mxn-toc-view .heading {
+    border-bottom: 1px solid var(--col-fg-light);
+    color: var(--col-fg-text-light);
+    font-family: var(--fnt-family-roboto);
+    font-size: var(--fnt-size-medium);
+    font-weight: var(--fnt-weight-light);
+    margin-top: var(--sze-foldable-toc-offset);
+    padding-bottom: var(--spc-smaller);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* scrollbar style */
+.mxn-toc-view .scroll-area {
+    height: var(--sze-foldable-toc-height);
+    margin-top: var(--spc-medium);
+    overflow-y: auto;
+}
+
+.mxn-toc-view>.scroll-area::-webkit-scrollbar {
+    width: calc(var(--sze-scrollbar-width) * 0.85);
+}
+
+.mxn-toc-view>.scroll-area::-webkit-scrollbar-thumb {
+    background: var(--col-fg-light);
+}
+
+/* list styles */
+
+.mxn-toc-view ul,
+.mxn-toc-view ul ul {
+    list-style-type: none !important;
+    padding-left: 0;
+}
+
+.mxn-toc-view ul ul {
+    margin-left: 20px;
+}
+
+.mxn-toc-view li {
+    margin: var(--spc-smallest) 0;
+}
+
+.mxn-toc-view li.nested > ul {
+    display: none;
+}
+
+.mxn-toc-view li.nested { /* has children */
+    line-height: 25px !important;
+}
+
+.mxn-toc-view li.terminal { /* no children */
+    height: 25px !important;
+    line-height: 25px !important;
+    margin-left: 20px;
+}
+
+.mxn-toc-view li.open > ul {
+    display: block;
+}
+
+.mxn-toc-view a,
+.mxn-toc-view a:visited { /* all links */
+    color: var(--col-fg-text-light);
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mxn-toc-view .terminal a {
+    width: 100%;
+}
+
+.mxn-toc-view .literal { /* code style for links */
+    font-family: var(--fnt-family-roboto-mono);
+    font-size:  var(--fnt-size-code);
+}
+
+/* toggle areas in an item with children */
+.mxn-toc-view .toggle {
+    align-items: center;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    width: 100%;
+}
+
+.mxn-toc-view .toggle:hover {
+    background: var(--col-fg-light);
+    border-radius: var(--brd-radius-normal);
+}
+
+/* toggle arrow */
+.mxn-toc-view .arrow {
+    color: var(--col-fg);
+    display: inline-block;
+    margin-right: 0.3em;
+    transform: rotate(0deg) scale(0.8);
+    transition: transform 0.2s;
+    user-select: none;
+    min-width: fit-content;
+}
+.mxn-toc-view .nested.open > .toggle > .arrow {
+    transform: rotate(90deg) scale(0.8);
+}
+
+/* the collapse/expand button at the bottom of the TOC */
+.mxn-toc-view .expander {
+    margin-top: -30px;
+    position: fixed;
+    z-index: 5;
+}

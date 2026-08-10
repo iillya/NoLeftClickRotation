@@ -1,0 +1,11 @@
+bp 1418a1cb9
+bp 1418a0652
+bp 1418a0550
+bp 14189fd19
+run
+log "HIT"
+log cip
+log rcx
+log r8
+log rax
+detach

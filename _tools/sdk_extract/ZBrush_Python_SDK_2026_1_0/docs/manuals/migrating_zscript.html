@@ -1,0 +1,1589 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Migrating ZScript</title>
+    <link rel="shortcut icon" href="../_static/favicon.ico" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/css/bootstrap.min.css" integrity="sha512-2bBQCjcnw658Lho4nlXJcc6WkV/UxpE/sAokbXPxQNGqmNdQrWqtw26Ns9kFF/yG792pKR1Sx8/Y1Lf1XN4GKA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.13.1/font/bootstrap-icons.min.css" integrity="sha512-t7Few9xlddEmgd3oKZQahkNI4dS6l80+eGEzFQiqtyVYdvcSG2D3Iub77R20BdotfRPA9caaRkg1tyaJiPmO0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=272cc67c" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=542147e7" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/css\mxn_breadcrumbs.css?v=d6c60be8" />
+    <link rel="stylesheet" type="text/css" href="../_static/css\mxn_examples.css?v=f744adab" />
+    <link rel="stylesheet" type="text/css" href="../_static/css\mxn_layout.css?v=3de13c46" />
+    <link rel="stylesheet" type="text/css" href="../_static/css\mxn_search.css?v=7167eada" />
+    <link rel="stylesheet" type="text/css" href="../_static/css\mxn_sphinx_design.css?v=97951868" />
+    <link rel="stylesheet" type="text/css" href="../_static/css\mxn_toc_view.css?v=42bae592" />
+    
+    <script src="../_static/documentation_options.js?v=6f7b910f"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/mxn_search_data_aa0c9659.js"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js\mxn_containers.js?v=5646f64f"></script>
+    <script src="../_static/js\mxn_search.js?v=1cfee160"></script>
+    <script src="../_static/js\mxn_theme.js?v=01699a56"></script>
+    <script src="../_static/js\mxn_toc_view.js?v=554f7698"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content="Migrating ZScript" name="title" />
+<meta content="Explains how to port ZScript code to the Python API." name="description" />
+<meta content="bi-recycle" name="icon" />
+<meta content="zbrush, python, sdk, api, code, documentation, migration, zscript, porting" name="keywords" />
+
+</head>
+<body>
+
+<script>SetMxnSiteTheme();</script>
+<div class="mxn-page " id="page-content">
+<div class="mxn-navbar">
+    <style>
+        .mxn-logo-image {
+            background-image: url("../_static/media/logos/zbrush_badge_black.png");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            width: 100%;
+            height: 100%;
+            aspect-ratio: 1 / 1;
+        }
+
+        body[data-bs-theme="dark"] .mxn-logo-image {
+            background-image: url("../_static/media/logos/zbrush_badge_white.png");
+        }
+    </style>
+    <a href="../index.html" class="mxn-logo" title="Home" aria-label="Home">
+        <div class="mxn-logo-image"></div>
+    </a>
+    <nav class="nav-breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../index.html">ZBrush Python SDK 2026.1</a></li><li class="breadcrumb-item dropdown"><a class="breadcrumb-link" href="index.html">Manuals</a><a class="dropdown-toggle" href="#" data-bs-toggle="dropdown"></a><ul class="dropdown-menu"><li><a class="dropdown-item" href="../api/index.html">API Index</a></li><li><a class="dropdown-item" href="../examples/index.html">Examples</a></li><li><a class="dropdown-item" href="index.html">Manuals</a></li></ul></li><li class="breadcrumb-item dropdown"><a class="breadcrumb-link" href="">Migrating ZScript</a><a class="dropdown-toggle" href="#" data-bs-toggle="dropdown"></a><ul class="dropdown-menu"><li><a class="dropdown-item" href="api_overview.html">API Overview</a></li><li><a class="dropdown-item" href="editor_config.html">Editor Configuration</a></li><li><a class="dropdown-item" href="importing_libraries.html">Importing Libraries</a></li><li><a class="dropdown-item" href="">Migrating ZScript</a></li><li><a class="dropdown-item" href="python_environment.html">Python Environment</a></li><li><a class="dropdown-item" href="quickstart.html">Quickstart</a></li><li><a class="dropdown-item" href="style_guide.html">Style Guide</a></li></ul></li></ol></nav>
+    <div class="mxn-navbar-right">
+        <button id="theme-toggle" class="btn btn-link" title="Toggle theme" type="button">
+            <i id="theme-icon" class="bi bi-sun-fill" title="Toggle theme"></i>
+        </button><form class="input-group search-group" action="../search.html" method="get">
+            <div class="mxn-search-input-wrapper" id="search-input-wrapper">
+                <input type="text" id="search-input" class="form-control" placeholder="Search ..." name="q" 
+                       autocomplete="off" spellcheck="off"/>
+            </div>
+            <script>MxnSearchUiHandler.InjectSearchShortcutHint();</script>
+        </form></div>
+</div><div class="mxn-content "><div class="mxn-sidebar">  
+<div class="mxn-toc-view" data-defaultDepth="2" data-defaultClosed="[]"><div class="heading">Table of Contents</div><div class="scroll-area"><ul><li class="nested"><span class="toggle"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="arrow" fill="currentColor" viewBox="0 0 16 16"><path d="m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z"></path></svg><a href="">Migrating ZScript</a></span><ul><li class="terminal"><a href="#example-migration">Example Migration</a></li><li class="terminal"><a href="#api-comparison">API Comparison</a></li></ul></li><li class="terminal"><a href="#see-also">See also</a></li></ul></div><i class="bi bi-arrows-expand mxn-subtle-button expander" title="Expand or collapse TOC"></i></div>
+</div><div class="mxn-scroll"><div class="mxn-body" role="main"><div class="mxn-inner-body">
+  <section id="migrating-zscript">
+<h1>Migrating ZScript<a class="headerlink" href="#migrating-zscript" title="Link to this heading">¶</a></h1>
+<p>Explains how to port ZScript code to the Python API.</p>
+<p>The ZBrush Python SDK ports at its core the ZScript API to Python and with that also allows for porting existing ZScripts to Python. There are, however, some differences between the APIs that are listed in this manual.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Change</p></th>
+<th class="head"><p>Details</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><em>Function Names</em></p></td>
+<td><p>Many functions have been renamed to follow Python naming conventions, e.g., the ZScript function <code class="docutils literal notranslate"><span class="pre">IButton</span></code> became the Python function <code class="docutils literal notranslate"><span class="pre">add_button</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>Function Signatures</em></p></td>
+<td><p>Some functions have changed signatures to better fit Python’s capabilities.</p></td>
+</tr>
+<tr class="row-even"><td><p><em>Removed System Functions</em></p></td>
+<td><p>All ZSScript control flow commands (<code class="docutils literal notranslate"><span class="pre">If</span></code>, <code class="docutils literal notranslate"><span class="pre">Loop</span></code>, etc.), variable-related commands (<code class="docutils literal notranslate"><span class="pre">Var</span></code>, <code class="docutils literal notranslate"><span class="pre">VarDef</span></code>, etc.), and other system functions such as file IO have been removed as they are built-in to Python.</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>Removed ZScript Tutorial Functions</em></p></td>
+<td><p>Functions in the <em>‘Display in the ZScript Tutorial Window’</em> of the current ZScript documentation are not available in Python.</p></td>
+</tr>
+</tbody>
+</table>
+<section id="example-migration">
+<h2>Example Migration<a class="headerlink" href="#example-migration" title="Link to this heading">¶</a></h2>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-0">
+Python Port</label><div class="sd-tab-content docutils">
+<p>The following code is a very literal port of the ZScript Coffee Maker example to Python. For a more Pythonic implementation, see <a class="reference internal" href="../examples/gui_ex_gui_notes.html"><span class="doc">Example gui_notes</span></a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;Provides an example for a very literal port of a ZScript script to Python.</span>
+
+<span class="sd">This directory contains three examples for notes interfaces. All three implement the same</span>
+<span class="sd">coffee maker interface, where the user can select a coffee type and then serve it. The examples are:</span>
+
+<span class="sd">- ex_gui_notes.py            : A modern Pythonic implementation of a notes interface.</span>
+<span class="sd">- ex_gui_zscript_port.py     : A literal port of a ZScript notes interface to Python.</span>
+<span class="sd">- ex_gui_zscript_orginal.txt : The original ZScript notes example for reference.</span>
+
+<span class="sd">It is recommended to use the ex_gui_notes.py example as a reference for building modern notes code,</span>
+<span class="sd">and this example only as a reference for porting ZScript code to Python.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Javier Edo&quot;</span>
+<span class="n">__date__</span> <span class="o">=</span> <span class="s2">&quot;21/08/2025&quot;</span>
+<span class="n">__copyright__</span> <span class="o">=</span> <span class="s2">&quot;Maxon Computer&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">zbrush.commands</span> <span class="k">as</span> <span class="nn">zbc</span>
+
+<span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+<span class="k">def</span> <span class="nf">note_interface</span><span class="p">():</span>
+    <span class="n">hSize</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="n">vSize</span> <span class="o">=</span> <span class="mi">18</span>
+    <span class="n">vPos</span> <span class="o">=</span> <span class="mi">87</span>
+    <span class="n">hPos</span> <span class="o">=</span> <span class="mi">23</span>
+    <span class="n">space</span> <span class="o">=</span> <span class="mi">12</span>
+    <span class="n">choice</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>
+    <span class="n">choiceImage</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;images/expresso.jpg&quot;</span><span class="p">,</span> 
+        <span class="s2">&quot;images/cappuccino.jpg&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;images/latte.jpg&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;images/mocha.jpg&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;images/flat white.jpg&quot;</span><span class="p">]</span>
+    <span class="n">choiceText</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]</span>
+    <span class="n">cupPic</span> <span class="o">=</span> <span class="n">choiceImage</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">global</span> <span class="n">message</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">zbc</span><span class="o">.</span><span class="n">add_note_button</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;images/ZCoffeeBack.jpg&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">305</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+            <span class="n">zbc</span><span class="o">.</span><span class="n">add_note_button</span><span class="p">(</span>
+                <span class="n">choiceText</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">choice</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="kc">False</span><span class="p">,</span> <span class="n">hPos</span><span class="p">,</span> <span class="n">vPos</span><span class="o">+</span><span class="p">((</span><span class="n">vSize</span><span class="o">+</span><span class="n">space</span><span class="p">)</span><span class="o">*</span><span class="n">x</span><span class="p">),</span> <span class="n">hSize</span><span class="p">,</span> <span class="n">vSize</span><span class="p">,</span> 
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mh">0xffa000</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+        <span class="n">zbc</span><span class="o">.</span><span class="n">add_note_button</span><span class="p">(</span>
+            <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">cupPic</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="mi">149</span><span class="p">,</span> <span class="mi">135</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="n">zbc</span><span class="o">.</span><span class="n">add_note_button</span><span class="p">(</span>
+            <span class="s2">&quot;Cancel&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="mi">170</span><span class="p">,</span> <span class="mi">260</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="n">zbc</span><span class="o">.</span><span class="n">add_note_button</span><span class="p">(</span>
+            <span class="s2">&quot;Serve Now&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">260</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mh">0xffa000</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">zbc</span><span class="o">.</span><span class="n">show_note</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">result</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">result</span> <span class="o">&lt;=</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">choice</span><span class="p">[</span><span class="n">result</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]:</span>
+                <span class="n">choice</span><span class="p">[</span><span class="n">result</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">choiceText</span><span class="p">[</span><span class="n">result</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="n">cupPic</span> <span class="o">=</span> <span class="s2">&quot;images/ZCoffeeEmpty.jpg&quot;</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;\Cffa000</span><span class="se">\n</span><span class="s2">  What, no coffee?!</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">choice</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                        <span class="n">choice</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="n">choiceText</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="n">choice</span><span class="p">[</span><span class="n">result</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">choiceText</span><span class="p">[</span><span class="n">result</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;X&quot;</span>
+                <span class="n">cupPic</span> <span class="o">=</span> <span class="n">choiceImage</span><span class="p">[</span><span class="n">result</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">result</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span> <span class="c1"># Cancel button</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;\Cffa000</span><span class="se">\n</span><span class="s2">  What, no coffee?!</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">result</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">result</span> <span class="o">&gt;</span> <span class="mi">8</span><span class="p">:</span> <span class="c1"># Serve Now button or press Spacebar</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">choice</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">choice</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">choice</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">choice</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> 
+                <span class="n">choice</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="c1"># all choices are unchecked, so no coffee selected</span>
+                <span class="n">zbc</span><span class="o">.</span><span class="n">show_note</span><span class="p">(</span><span class="s2">&quot;\Cc0c0c0</span><span class="se">\n</span><span class="s2">  Sorry, we do not serve empty cups.</span><span class="se">\n</span><span class="s2">  Please make a &quot;</span>
+                              <span class="s2">&quot;choice or press \Cffa000Cancel\Cc0c0c0.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4737096</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">320</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">cupPic</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;\Cc0c0c0Enjoy your \Cffa000&quot;</span> <span class="o">+</span> <span class="n">message</span> <span class="o">+</span> <span class="s2">&quot;\Cc0c0c0 !</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="k">return</span>
+
+<span class="k">def</span> <span class="nf">open_note</span><span class="p">():</span>
+    <span class="n">zbc</span><span class="o">.</span><span class="n">freeze</span><span class="p">(</span><span class="n">note_interface</span><span class="p">)</span>
+    <span class="n">zbc</span><span class="o">.</span><span class="n">show_note</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">4737096</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">220</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">open_note</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-1">
+ZScript Original</label><div class="sd-tab-content docutils">
+<p>The original ZScript Coffee Maker example for reference.</p>
+<div class="highlight-zscript notranslate"><div class="highlight"><pre><span></span><span class="c1">//ZScript Note interface example</span>
+<span class="c1">//***********************************************************************************************</span>
+
+<span class="c1">//[IConfig,3.1]//uncomment this for ZBrush 3.1 and above</span>
+<span class="c1">//[IConfig,2]//uncomment this for ZBrush 2.0 and above</span>
+
+<span class="c1">//*********************************</span>
+<span class="c1">//Variables definition</span>
+<span class="c1">//*********************************</span>
+
+<span class="k">[VarDef</span>,result,<span class="m">0</span>]
+<span class="k">[VarDef</span>,hSize,<span class="m">20</span>]
+<span class="k">[VarDef</span>,vSize,<span class="m">18</span>]
+<span class="k">[VarDef</span>,vPos,<span class="m">87</span>]
+<span class="k">[VarDef</span>,hPos,<span class="m">23</span>]
+<span class="k">[VarDef</span>,space,<span class="m">12</span>]
+<span class="k">[VarDef</span>,choice(<span class="m">5</span>),<span class="m">0</span>]
+<span class="k">[VarDef</span>,choiceImage(<span class="m">5</span>),<span class="s">&quot;&quot;</span>]
+<span class="k">[VarDef</span>,choiceText(<span class="m">5</span>),<span class="s">&quot;&quot;</span>]
+<span class="k">[VarDef</span>,cupPic,<span class="s">&quot;&quot;</span>]
+<span class="k">[VarDef</span>,message,<span class="s">&quot;&quot;</span>]
+<span class="k">[VarDef</span>,init,<span class="m">1</span>]
+
+<span class="c1">//********Routines*********</span>
+
+<span class="k">[RoutineDef</span>,Initialize,<span class="c1">//initialization</span>
+<span class="k">[VarSet</span>,init,<span class="m">0</span>]
+<span class="k">[VarSet</span>,cupPic,<span class="s">&quot;ZCoffeeData\expresso.jpg&quot;</span>]
+<span class="k">[VarSet</span>,message,<span class="s">&quot;\Cc0c0c0Enjoy your \Cffa000expresso\Cc0c0c0 !&quot;</span>]
+<span class="k">[VarSet</span>,choiceImage(<span class="m">0</span>),<span class="s">&quot;ZCoffeeData\expresso.jpg&quot;</span>]
+<span class="k">[VarSet</span>,choiceImage(<span class="m">1</span>),<span class="s">&quot;ZCoffeeData\cappuccino.jpg&quot;</span>]
+<span class="k">[VarSet</span>,choiceImage(<span class="m">2</span>),<span class="s">&quot;ZCoffeeData\latte.jpg&quot;</span>]
+<span class="k">[VarSet</span>,choiceImage(<span class="m">3</span>),<span class="s">&quot;ZCoffeeData\mocha.jpg&quot;</span>]
+<span class="k">[VarSet</span>,choiceImage(<span class="m">4</span>),<span class="s">&quot;ZCoffeeData\flat white.jpg&quot;</span>]
+<span class="k">[VarSet</span>,choice(<span class="m">0</span>),<span class="m">1</span>]
+<span class="k">[VarSet</span>,choiceText(<span class="m">0</span>),<span class="s">&quot;X&quot;</span>]
+]<span class="c1">//end routine</span>
+
+
+<span class="k">[RoutineDef</span>,NoteInterface,<span class="c1">//main interface</span>
+    
+<span class="k">[IFreeze</span>,<span class="c1">//makes operation smooth</span>
+<span class="k">[Loop</span>,<span class="m">1000</span>,<span class="c1">//loop for selections, until Serve Now or Cancel choice ends loop</span>
+<span class="c1">//draw the interface </span>
+
+<span class="c1">//background image - the other buttons are positioned relative to this</span>
+<span class="k">[NoteIButton</span>,<span class="cm">/*text*/</span> , <span class="s">&quot;ZCoffeeData\ZCoffeeBack.jpg&quot;</span> <span class="cm">/*image*/</span> , <span class="cm">/*pressed?*/</span> ,<span class="m">1</span> <span class="cm">/*disabled?*/</span>,<span class="m">1</span> <span class="cm">/*HPos*/</span>, <span class="m">1</span> <span class="cm">/*VPos*/</span> , <span class="m">305</span> <span class="cm">/*HSize*/</span> , <span class="m">320</span> <span class="cm">/*VSize*/</span> , <span class="cm">/*color*/</span> , <span class="cm">/*text color*/</span> , <span class="m">0</span> <span class="cm">/*opacity*/</span>, <span class="cm">/*text opacity*/</span> ,<span class="m">1</span> <span class="cm">/*image opacity*/</span> ]
+
+<span class="k">[Loop</span>,<span class="m">5</span>,<span class="c1">//draw the selection buttons</span>
+<span class="k">[NoteIButton</span>,choiceText(x) <span class="cm">/*text*/</span> , <span class="cm">/*image*/</span> ,choice(x) <span class="cm">/*pressed?*/</span> , <span class="cm">/*disabled?*/</span>,hPos <span class="cm">/*HPos*/</span>,vPos+((vSize+space)*x) <span class="cm">/*VPos*/</span> , hSize <span class="cm">/*HSize*/</span> , vSize <span class="cm">/*VSize*/</span> , <span class="cm">/*color*/</span> ,<span class="m">0</span>xffa<span class="m">000</span> <span class="cm">/*text color*/</span>, <span class="cm">/*opacity*/</span>, <span class="cm">/*text opacity*/</span> , <span class="cm">/*image opacity*/</span> ]
+,x]
+
+<span class="k">[NoteIButton</span>,<span class="cm">/*text*/</span> ,cupPic <span class="cm">/*image*/</span> , <span class="cm">/*pressed?*/</span> ,<span class="m">1</span> <span class="cm">/*disabled?*/</span>,<span class="m">149</span> <span class="cm">/*HPos*/</span>,<span class="m">135</span> <span class="cm">/*VPos*/</span> , <span class="cm">/*HSize*/</span> , <span class="cm">/*VSize*/</span> ,  <span class="cm">/*color*/</span> , <span class="cm">/*text color*/</span> , <span class="cm">/*opacity*/</span>, <span class="cm">/*text opacity*/</span> ,<span class="m">1</span> <span class="cm">/*image opacity*/</span> ]
+
+<span class="k">[NoteIButton</span>,<span class="s">&quot;Cancel&quot;</span> <span class="cm">/*text*/</span>,<span class="cm">/*image*/</span> , <span class="cm">/*pressed?*/</span> ,<span class="cm">/*disabled?*/</span>,<span class="m">170</span> <span class="cm">/*HPos*/</span>,<span class="m">260</span> <span class="cm">/*VPos*/</span> ,<span class="m">100</span> <span class="cm">/*HSize*/</span> ,<span class="m">25</span> <span class="cm">/*VSize*/</span> , <span class="cm">/*color*/</span> , <span class="cm">/*text color*/</span> , <span class="cm">/*opacity*/</span>, <span class="cm">/*text opacity*/</span> , <span class="cm">/*image opacity*/</span> ]
+
+<span class="k">[NoteIButton</span>,<span class="s">&quot;Serve Now&quot;</span> <span class="cm">/*text*/</span>,<span class="cm">/*image*/</span> , <span class="cm">/*pressed?*/</span> ,<span class="cm">/*disabled?*/</span>,<span class="m">30</span> <span class="cm">/*HPos*/</span>,<span class="m">260</span> <span class="cm">/*VPos*/</span> ,<span class="m">100</span> <span class="cm">/*HSize*/</span> ,<span class="m">25</span> <span class="cm">/*VSize*/</span> , <span class="cm">/*color*/</span> ,<span class="m">0</span>xffa<span class="m">000</span> <span class="cm">/*text color*/</span> , <span class="cm">/*opacity*/</span>, <span class="cm">/*text opacity*/</span> , <span class="cm">/*image opacity*/</span> ]
+
+
+<span class="k">[VarSet</span>,result,<span class="k">[Note</span>,<span class="s">&quot;&quot;</span>]]<span class="c1">//get result</span>
+
+<span class="c1">//process result</span>
+<span class="k">[If</span>, (result&gt;=<span class="m">2</span>)&amp;&amp;(result&lt;=<span class="m">6</span>),<span class="c1">//choice results</span>
+  <span class="k">[If</span>,choice(result-<span class="m">2</span>),<span class="c1">//uncheck if same selection</span>
+  <span class="k">[VarSet</span>,choice(result-<span class="m">2</span>),<span class="m">0</span>]
+  <span class="k">[VarSet</span>,choiceText(result-<span class="m">2</span>),<span class="s">&quot;&quot;</span>]
+  <span class="k">[VarSet</span>,cupPic,<span class="s">&quot;ZCoffeeData\ZCoffeeEmpty.jpg&quot;</span>]<span class="c1">//set image</span>
+  <span class="k">[VarSet</span>,message,<span class="s">&quot;\Cffa000\n  What, no coffee?!\n&quot;</span>]
+  <span class="k">[VarSet</span>,init,<span class="m">1</span>]
+    ,<span class="c1">//else check selection, uncheck the rest</span>
+  <span class="k">[Loop</span>,<span class="m">5</span>,<span class="c1">//uncheck all first</span>
+    <span class="k">[VarSet</span>,choice(n),<span class="m">0</span>]
+    <span class="k">[VarSet</span>,choiceText(n),<span class="s">&quot;&quot;</span>]
+  ,n]
+  <span class="k">[VarSet</span>,choice(result-<span class="m">2</span>),<span class="m">1</span>]<span class="c1">//then check selection</span>
+  <span class="k">[VarSet</span>,choiceText(result-<span class="m">2</span>),<span class="s">&quot;X&quot;</span>]
+  <span class="k">[VarSet</span>,cupPic,<span class="k">[Var</span>,choiceImage(result-<span class="m">2</span>)]]<span class="c1">//set image </span>
+  ]<span class="c1">//end if </span>
+]<span class="c1">//end choice results</span>
+
+<span class="k">[If</span>,result=<span class="m">8</span>,<span class="c1">//Cancel button</span>
+<span class="k">[VarSet</span>,message,<span class="s">&quot;\Cffa000\n  What, no coffee?!\n&quot;</span>]
+<span class="k">[LoopExit</span>]<span class="c1">//exits loop and interface</span>
+]<span class="c1">// end Cancel result </span>
+  
+<span class="k">[If</span>,(result&lt;<span class="m">2</span>)||(result&gt;<span class="m">8</span>),<span class="c1">//Serve Now button or press Spacebar</span>
+  <span class="k">[If</span>,(choice(<span class="m">0</span>)=<span class="m">0</span>)&amp;&amp;(choice(<span class="m">1</span>)=<span class="m">0</span>)&amp;&amp;(choice(<span class="m">2</span>)=<span class="m">0</span>)&amp;&amp;(choice(<span class="m">3</span>)=<span class="m">0</span>)&amp;&amp;(choice(<span class="m">4</span>)=<span class="m">0</span>),
+    <span class="c1">//all choices are unchecked, so no coffee selected</span>
+    <span class="k">[Note</span>,<span class="s">&quot;\Cc0c0c0\n  Sorry, we do not serve empty cups.\n  Please make a choice or</span>
+<span class="s">       press \Cffa000Cancel\Cc0c0c0.\n&quot;</span>,,<span class="m">3</span>,<span class="m">4737096</span>,,<span class="m">320</span>]
+    <span class="k">[RoutineCall</span>,Initialize]<span class="c1">//resets interface</span>
+  ,<span class="c1">//else process coffee choice</span>
+    <span class="k">[VarSet</span>,message,<span class="k">[FileNameExtract</span>,<span class="k">[FileNameResolvePath</span>,<span class="k">[Var</span>,cupPic]],<span class="m">2</span>]]
+    <span class="k">[VarSet</span>,message,<span class="k">[StrMerge</span>,<span class="s">&quot;\Cc0c0c0\n   Enjoy your \Cffa000&quot;</span>,message,<span class="s">&quot;\Cc0c0c0 !\n&quot;</span>]]
+    <span class="k">[LoopExit</span>]<span class="c1">//exits loop and interface</span>
+  ]<span class="c1">//end if</span>
+]<span class="c1">//end Serve Now result</span>
+
+]<span class="c1">//end loop</span>
+]<span class="c1">//end freeze</span>
+
+]<span class="c1">//end routine</span>
+
+<span class="c1">//*****end of routines********</span>
+
+<span class="c1">//Button for launching interface</span>
+
+<span class="k">[IButton</span>,<span class="s">&quot;Launch Note Interface&quot;</span>,,
+  <span class="k">[If</span>,init, <span class="c1">//initialize if necessary</span>
+    <span class="k">[RoutineCall</span>,Initialize]
+  ]<span class="c1">//end if</span>
+  <span class="k">[RoutineCall</span>,NoteInterface]<span class="c1">//call interface</span>
+  <span class="k">[Note</span>,#message,,<span class="m">2</span>,<span class="m">4737096</span>,,<span class="m">220</span>]<span class="c1">//end message is displayed</span>
+]<span class="c1">//end button</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="api-comparison">
+<h2>API Comparison<a class="headerlink" href="#api-comparison" title="Link to this heading">¶</a></h2>
+<p>Find below a full list of the ZScript commands and their Python equivalents, as well as the porting notes.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">ZScript Commands</span><a class="headerlink" href="#id1" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>ZScript Cmd</p></th>
+<th class="head"><p>Python Cmd</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Assert</p></td>
+<td><p>n/a</p></td>
+<td><p>Python has a built-in assert() although its a ‘real’ assert unlike the ZScript one</p></td>
+</tr>
+<tr class="row-odd"><td><p>BackColorSet</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>ButtonFind</p></td>
+<td><p>n/a</p></td>
+<td><p>Unlike ZScript python integration does not distinguish between top/other level commands</p></td>
+</tr>
+<tr class="row-odd"><td><p>ButtonPress</p></td>
+<td><p>n/a</p></td>
+<td><p>Unlike ZScript python integration does not distinguish between top/other level commands… use <cite>press</cite></p></td>
+</tr>
+<tr class="row-even"><td><p>ButtonSet</p></td>
+<td><p>n/a</p></td>
+<td><p>Unlike ZScript python integration does not distinguish between top/other level commands… use <cite>set</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p>ButtonUnPress</p></td>
+<td><p>n/a</p></td>
+<td><p>Unlike ZScript python integration does not distinguish between top/other level commands… use <cite>un_press</cite></p></td>
+</tr>
+<tr class="row-even"><td><p>CanvasClick</p></td>
+<td><p>canvas_click</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>CanvasGyroHide</p></td>
+<td><p>hide_canvas_extras</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>CanvasGyroShow</p></td>
+<td><p>show_canvas_extras</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>CanvasPanGetH</p></td>
+<td><p>get_canvas_pan</p></td>
+<td><p>returns a tuple… equivalent is index 0</p></td>
+</tr>
+<tr class="row-even"><td><p>CanvasPanGetV</p></td>
+<td><p>get_canvas_pan</p></td>
+<td><p>returns a tuple… equivalent is index 1</p></td>
+</tr>
+<tr class="row-odd"><td><p>CanvasPanSet</p></td>
+<td><p>set_canvas_pan</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>CanvasStroke</p></td>
+<td><p>canvas_stroke</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>CanvasStrokes</p></td>
+<td><p>canvas_strokes</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>CanvasZoomGet</p></td>
+<td><p>get_canvas_zoom</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>CanvasZoomSet</p></td>
+<td><p>set_canvas_zoom</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Caption</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>CreateDirectory</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for example: <cite>os.makedirs()</cite>… resolve paths using <cite>resolve_path</cite></p></td>
+</tr>
+<tr class="row-even"><td><p>CurveAddPoint</p></td>
+<td><p>add_curve_point</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>CurvesCreateMesh</p></td>
+<td><p>create_mesh_from_curves</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>CurvesDelete</p></td>
+<td><p>delete_curves</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>CurvesNewCurve</p></td>
+<td><p>add_new_curve</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>CurvesNew</p></td>
+<td><p>new_curves</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>CurvesToUI</p></td>
+<td><p>curves_to_ui</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Delay</p></td>
+<td><p>n/a</p></td>
+<td><p>use <cite>time.sleep</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p>DispMapCreate</p></td>
+<td><p>create_displacement_map</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Exit</p></td>
+<td><p>n/a</p></td>
+<td><p>the original behavior aborting execution of ZScript can be done in python in multiple ways… to exit ZBrush… use <cite>sys.exit()</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p>FileDelete</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for example: <cite>os.remove()</cite> resolve paths using <cite>resolve_path</cite></p></td>
+</tr>
+<tr class="row-even"><td><p>FileExecute</p></td>
+<td><p>n/a</p></td>
+<td><p>use python’s built-in <cite>ctypes.CDLL</cite> or <cite>cffi</cite> modules to achieve this</p></td>
+</tr>
+<tr class="row-odd"><td><p>FileGetInfo</p></td>
+<td><p>n/a</p></td>
+<td><p>use python’s built-in <cite>stat</cite> module</p></td>
+</tr>
+<tr class="row-even"><td><p>FileNameAdvance</p></td>
+<td><p>increment_filename</p></td>
+<td><p>this is easily reimplementable in python but was left here as it’s commonly used</p></td>
+</tr>
+<tr class="row-odd"><td><p>FileNameAsk</p></td>
+<td><p>ask_filename</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>FileNameExtract</p></td>
+<td><p>n/a</p></td>
+<td><p>use python’s string slicing instead</p></td>
+</tr>
+<tr class="row-odd"><td><p>FileNameGetLastTyped</p></td>
+<td><p>get_last_typed_filename</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>FileNameGetLastUsed</p></td>
+<td><p>get_last_used_filename</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>FileNameGetNext</p></td>
+<td><p>get_next_filename</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>FileNameHasNext</p></td>
+<td><p>has_next_filename</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>FileNameMake</p></td>
+<td><p>make_filename</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>FileNameResolvePath</p></td>
+<td><p>resolve_path</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>FileNameSetNext</p></td>
+<td><p>set_next_filename</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>FileTemplateGetNext</p></td>
+<td><p>get_next_template_filename</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>FontSetColor</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>FontSetOpacity</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>FontSetSize</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>FontSetSizeLarge</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>FontSetSizeMedium</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>FontSetSizeSmall</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>FontColorSet</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>GetActiveToolPath</p></td>
+<td><p>get_active_tool_path</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>GetMainToolPath</p></td>
+<td><p>get_main_tool_path</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>GetPolyMesh3DArea</p></td>
+<td><p>get_polymesh3d_area</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>GetPolyMesh3DVolume</p></td>
+<td><p>get_polymesh3d_volume</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>HotKeyText</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>IButton</p></td>
+<td><p>add_button</p></td>
+<td><p>command group argument replaced by function call… expected function signature <cite>fn(str) -&gt; None</cite></p></td>
+</tr>
+<tr class="row-even"><td><p>IClick</p></td>
+<td><p>click</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IClose</p></td>
+<td><p>close</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IColorSet</p></td>
+<td><p>set_color</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IConfig</p></td>
+<td><p>config</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IDisable</p></td>
+<td><p>disable</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IEnable</p></td>
+<td><p>enable</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IExists</p></td>
+<td><p>exists</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IFadeIn</p></td>
+<td><p>fade_in</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IFadeOut</p></td>
+<td><p>fade_out</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IFreeze</p></td>
+<td><p>freeze</p></td>
+<td><p>command group argument replaced by function call… expected function signature <cite>fn() -&gt; None</cite></p></td>
+</tr>
+<tr class="row-even"><td><p>IGet</p></td>
+<td><p>get</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IGetFlags</p></td>
+<td><p>get_flags</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IGetHotkey</p></td>
+<td><p>get_hotkey</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IGetID</p></td>
+<td><p>get_id</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IGetInfo</p></td>
+<td><p>get_info</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IGetMax</p></td>
+<td><p>get_max</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IGetMin</p></td>
+<td><p>get_min</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IGetSecondary</p></td>
+<td><p>get_secondary</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IGetStatus</p></td>
+<td><p>get_status</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IGetTitle</p></td>
+<td><p>get_title</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IHeight</p></td>
+<td><p>get_height</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IHide</p></td>
+<td><p>hide</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IHPos</p></td>
+<td><p>get_pos</p></td>
+<td><p>returns a tuple… equivalent is index 0</p></td>
+</tr>
+<tr class="row-odd"><td><p>IKeyPress</p></td>
+<td><p>press_key</p></td>
+<td><p>command group argument replaced by function call… expected function signature <cite>fn() -&gt; None</cite></p></td>
+</tr>
+<tr class="row-even"><td><p>ILock</p></td>
+<td><p>lock</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>Image</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>IMaximize</p></td>
+<td><p>maximize</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IMinimize</p></td>
+<td><p>minimize</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IModGet</p></td>
+<td><p>get_mod</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IModify</p></td>
+<td><p>modify</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IModSet</p></td>
+<td><p>set_mod</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>Interpolate</p></td>
+<td><p>interpolate</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IPalette</p></td>
+<td><p>add_palette</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IPress</p></td>
+<td><p>press</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IReset</p></td>
+<td><p>reset</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IsDisabled</p></td>
+<td><p>is_disabled</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IsEnabled</p></td>
+<td><p>is_enabled</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>ISet</p></td>
+<td><p>set</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>ISetHotkey</p></td>
+<td><p>set_hotkey</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>ISetMax</p></td>
+<td><p>set_max</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>ISetMin</p></td>
+<td><p>set_min</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>ISetStatus</p></td>
+<td><p>set_status</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IShowActions</p></td>
+<td><p>show_actions</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IShow</p></td>
+<td><p>show</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>ISlider</p></td>
+<td><p>add_slider</p></td>
+<td><p>command group argument replaced by function call… expected function signature <cite>fn(str float) -&gt; None</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p>IsLocked</p></td>
+<td><p>is_locked</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IsPolyMesh3DSolid</p></td>
+<td><p>is_polymesh3d_solid</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IStroke</p></td>
+<td><p>stroke</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>ISubPalette</p></td>
+<td><p>add_subpalette</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IsUnlocked</p></td>
+<td><p>is_unlocked</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>ISwitch</p></td>
+<td><p>add_switch</p></td>
+<td><p>command group argument replaced by function call… expected function signature <cite>fn(str bool) -&gt; None</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p>IToggle</p></td>
+<td><p>toggle</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IUnlock</p></td>
+<td><p>unlock</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IUnPress</p></td>
+<td><p>un_press</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>IUpdate</p></td>
+<td><p>update</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IVPos</p></td>
+<td><p>get_pos</p></td>
+<td><p>returns a tuple… equivalent is index 1</p></td>
+</tr>
+<tr class="row-even"><td><p>IWidth</p></td>
+<td><p>get_width</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>MemCopy</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-even"><td><p>MemCreate</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-odd"><td><p>MemCreateFromFile</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-even"><td><p>MemDelete</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-odd"><td><p>MemGetSize</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-even"><td><p>MemMove</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-odd"><td><p>MemMultiWrite</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-even"><td><p>MemRead</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-odd"><td><p>MemReadString</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-even"><td><p>MemResize</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-odd"><td><p>MemSaveToFile</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-even"><td><p>MemWrite</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-odd"><td><p>MemWriteString</p></td>
+<td><p>n/a</p></td>
+<td><p>use python built-ins for exchange with dynamic libs</p></td>
+</tr>
+<tr class="row-even"><td><p>MergeUndo</p></td>
+<td><p>merge_undo</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>Mesh3DGet</p></td>
+<td><p>query_mesh3d</p></td>
+<td><p>signature changed! query_mesh3d(int property Opt&lt;int&gt; index) -&gt; list[float]</p></td>
+</tr>
+<tr class="row-even"><td><p>MessageOK</p></td>
+<td><p>message_ok</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>MessageOKCancel</p></td>
+<td><p>message_ok_cancel</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>MessageYesNo</p></td>
+<td><p>message_yes_no</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>MessageYesNoCancel</p></td>
+<td><p>message_yes_no_cancel</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>MouseHPos</p></td>
+<td><p>get_mouse_pos</p></td>
+<td><p>returns a tuple… equivalent is index 0</p></td>
+</tr>
+<tr class="row-odd"><td><p>MouseLButton</p></td>
+<td><p>get_left_mouse_button_state</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>MouseVPos</p></td>
+<td><p>get_mouse_pos</p></td>
+<td><p>returns a tuple… equivalent is index 1</p></td>
+</tr>
+<tr class="row-odd"><td><p>MTransformGet</p></td>
+<td><p>n/a</p></td>
+<td><p>python has built-in memory block handling</p></td>
+</tr>
+<tr class="row-even"><td><p>MTransformSet</p></td>
+<td><p>n/a</p></td>
+<td><p>python has built-in memory block handling</p></td>
+</tr>
+<tr class="row-odd"><td><p>MVarDef</p></td>
+<td><p>n/a</p></td>
+<td><p>python has built-in memory block handling</p></td>
+</tr>
+<tr class="row-even"><td><p>MVarGet</p></td>
+<td><p>n/a</p></td>
+<td><p>python has built-in memory block handling</p></td>
+</tr>
+<tr class="row-odd"><td><p>MVarSet</p></td>
+<td><p>n/a</p></td>
+<td><p>python has built-in memory block handling</p></td>
+</tr>
+<tr class="row-even"><td><p>NormalMapCreate</p></td>
+<td><p>create_normal_map</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>Note</p></td>
+<td><p>show_note</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>NoteBar</p></td>
+<td><p>set_notebar_text</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>NoteIButton</p></td>
+<td><p>add_note_button</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>NoteIGet</p></td>
+<td><p>get_from_note</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>NoteISwitch</p></td>
+<td><p>add_note_switch</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>PageSetWidth</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>PaintBackground</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>PaintBackSliver</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>PaintPageBreak</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>PaintRect</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>PaintTextRect</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>PD</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>PenMoveCenter</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>PenMoveDown</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>PenMoveLeft</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>PenMoveRight</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>PenMove</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>PenSetColor</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>PixolPick</p></td>
+<td><p>pixol_pick</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>PropertySet</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>RAND</p></td>
+<td><p>rand</p></td>
+<td><p>python’s random module is preferrable… left here for compatibility purposes</p></td>
+</tr>
+<tr class="row-even"><td><p>IRAND</p></td>
+<td><p>rand_int</p></td>
+<td><p>python’s random module is preferrable… left here for compatibility purposes</p></td>
+</tr>
+<tr class="row-odd"><td><p>Randomize</p></td>
+<td><p>randomize</p></td>
+<td><p>kept here for compatibility reasons… prefer using python’s random module</p></td>
+</tr>
+<tr class="row-even"><td><p>RGB</p></td>
+<td><p>rgb</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>SectionBegin</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>SectionEnd</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>ShellExecute</p></td>
+<td><p>n/a</p></td>
+<td><p>use python’s built-in subprocess module instead</p></td>
+</tr>
+<tr class="row-even"><td><p>Sleep</p></td>
+<td><p>n/a</p></td>
+<td><p>not ported for now… can affect overall ZB performance</p></td>
+</tr>
+<tr class="row-odd"><td><p>SleepAgain</p></td>
+<td><p>n/a</p></td>
+<td><p>not ported for now… can affect overall ZB performance</p></td>
+</tr>
+<tr class="row-even"><td><p>StrAsk</p></td>
+<td><p>ask_string</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>StrExtract</p></td>
+<td><p>n/a</p></td>
+<td><p>use python’s string slicing</p></td>
+</tr>
+<tr class="row-even"><td><p>StrFind</p></td>
+<td><p>n/a</p></td>
+<td><p>built-in to python cast</p></td>
+</tr>
+<tr class="row-odd"><td><p>StrFromAsc</p></td>
+<td><p>n/a</p></td>
+<td><p>use python’s built-in</p></td>
+</tr>
+<tr class="row-even"><td><p>StrLength</p></td>
+<td><p>n/a</p></td>
+<td><p>use <cite>len()</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p>StrLower</p></td>
+<td><p>n/a</p></td>
+<td><p>use <cite>lower()</cite></p></td>
+</tr>
+<tr class="row-even"><td><p>StrMerge</p></td>
+<td><p>n/a</p></td>
+<td><p>use python’s formatting</p></td>
+</tr>
+<tr class="row-odd"><td><p>StrokeGetInfo</p></td>
+<td><p>get_stroke_info</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>StrokeGetLast</p></td>
+<td><p>get_last_stroke</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>StrokeLoad</p></td>
+<td><p>load_stroke</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>StrokesLoad</p></td>
+<td><p>load_strokes</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>StrToAsc</p></td>
+<td><p>n/a</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>StrUpper</p></td>
+<td><p>n/a</p></td>
+<td><p>use <cite>upper()</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p>SubTitle</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>SubToolGetActiveIndex</p></td>
+<td><p>get_active_subtool_index</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>SubToolGetCount</p></td>
+<td><p>get_subtool_count</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>SubToolGetFolderIndex</p></td>
+<td><p>get_subtool_folder_index</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>SubToolGetFolderName</p></td>
+<td><p>get_subtool_folder_name</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>SubToolGetID</p></td>
+<td><p>get_subtool_id</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>SubToolGetStatus</p></td>
+<td><p>get_subtool_status</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>SubToolLocate</p></td>
+<td><p>locate_subtool</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>SubToolLocateByName</p></td>
+<td><p>locate_subtool_by_name</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>SubToolSelect</p></td>
+<td><p>select_subtool</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>SubToolSetStatus</p></td>
+<td><p>set_subtool_status</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>SystemInfo</p></td>
+<td><p>system_info</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>TextCalcWidth</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-even"><td><p>Title</p></td>
+<td><p>n/a</p></td>
+<td><p>ZScript Window commands not ported</p></td>
+</tr>
+<tr class="row-odd"><td><p>TLDeleteKeyFrame</p></td>
+<td><p>delete_keyframe</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>TLGetActiveTrackIndex</p></td>
+<td><p>get_active_track_index</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>TLGetKeyFramesCount</p></td>
+<td><p>get_keyframes_count</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>TLGetKeyFrameTime</p></td>
+<td><p>get_keyframe_time</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>TLGetTime</p></td>
+<td><p>get_timeline_time</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>TLGotoKeyFrameTime</p></td>
+<td><p>set_timeline_to_keyframe_time</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>TLGotoTime</p></td>
+<td><p>set_timeline_time</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>TLNewKeyFrame</p></td>
+<td><p>new_keyframe</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>TLSetActiveTrackIndex</p></td>
+<td><p>set_active_track_index</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>TLSetKeyFrameTime</p></td>
+<td><p>set_keyframe_time</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>ToolGetActiveIndex</p></td>
+<td><p>get_active_tool_index</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>ToolGetCount</p></td>
+<td><p>get_tool_count</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>ToolGetPath</p></td>
+<td><p>get_tool_path</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>ToolGetSubToolID</p></td>
+<td><p>get_subtool_id</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>ToolGetSubToolsCount</p></td>
+<td><p>get_subtool_count</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>ToolLocateSubTool</p></td>
+<td><p>locate_subtool</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>ToolLocateSubToolByName</p></td>
+<td><p>locate_subtool_by_name</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>ToolSelect</p></td>
+<td><p>select_tool</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>ToolSetPath</p></td>
+<td><p>set_tool_path</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>TransformGet</p></td>
+<td><p>get_transform</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>TransformSet</p></td>
+<td><p>set_transform</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>TransposeGet</p></td>
+<td><p>get_transpose</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>TransposeIsShown</p></td>
+<td><p>is_transpose_shown</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>TransposeSet</p></td>
+<td><p>set_transpose</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>Val</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-even"><td><p>VarAdd</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-odd"><td><p>VarDec</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-even"><td><p>VarDef</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-odd"><td><p>VarDiv</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-even"><td><p>VarInc</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-odd"><td><p>VarListCopy</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-even"><td><p>VarLoad</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-odd"><td><p>VarMul</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-even"><td><p>VarSave</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-odd"><td><p>VarSet</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-even"><td><p>VarSize</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-odd"><td><p>VarSub</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-even"><td><p>Var</p></td>
+<td><p>n/a</p></td>
+<td><p>variables are built-in to python</p></td>
+</tr>
+<tr class="row-odd"><td><p>ZBrushInfo</p></td>
+<td><p>zbrush_info</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>ZBrushPriorityGet</p></td>
+<td><p>n/a</p></td>
+<td><p>this existed but was not implemented</p></td>
+</tr>
+<tr class="row-odd"><td><p>ZBrushPrioritySet</p></td>
+<td><p>n/a</p></td>
+<td><p>this existed but was not implemented</p></td>
+</tr>
+<tr class="row-even"><td><p>ZSphereAdd</p></td>
+<td><p>add_zsphere</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>ZSphereDel</p></td>
+<td><p>delete_zsphere</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>ZSphereEdit</p></td>
+<td><p>edit_zsphere</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>ZSphereGet</p></td>
+<td><p>get_zsphere</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>ZSphereSet</p></td>
+<td><p>set_zsphere</p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="see-also">
+<h1>See also<a class="headerlink" href="#see-also" title="Link to this heading">¶</a></h1>
+<div class="mxn-layout mxn-display-flex mxn-direction-row mxn-justify-left mxn-align-stretch" style="gap: 10px; width: 100%;" ><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 1)) * 0.5);" data-uri="quickstart.html"><em class="mxn-card-image bi bi-fast-forward"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">Quickstart</p>
+<p class="mxn-card-description">Take your first steps with Python scripting in ZBrush.</p>
+</div>
+</div><div class="mxn-card mxn-image-left" style="min-width: calc((100% - (10px * 1)) * 0.5);" data-uri="api_overview.html"><em class="mxn-card-image bi bi-binoculars"></em><div class="mxn-card-content docutils container">
+<p class="mxn-card-title">API Overview</p>
+<p class="mxn-card-description">Explains the conventions and capabilities of the ZBrush API.</p>
+</div>
+</div></div></section>
+
+</div>
+<div class="mxn-footer" role="navigation" aria-label="related navigation">
+    <div class="footer-center">
+        <div class="footer-text">
+            &copy; <script>document.write(new Date().getFullYear())</script> <a href="https://www.maxon.net">Maxon Computer GmbH</a>
+        </div>
+        <a class="footer-text" href="../license.html">SDK License</a>
+        <a class="footer-text" href="https://www.maxon.net/en/legal/eula">End User License Agreement</a>
+    </div>
+</div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="search-overlay" class="d-none">
+    <div id="search-overlay-wrapper">
+        
+<div class="mxn-search-container">
+    <form class="mxn-search-form" id="search-form" method="get">
+        <h1>Search</h1>
+        <div class="input-group">
+            <input type="text" id="search-bar-top" class="form-control" placeholder="Search ..." name="q" 
+                   autocomplete="off" spellcheck="off" data-target="../search.html" aria-label="Search"/>
+        </div>
+        <div class="mxn-search-facets">
+            <span class="mxn-search-label">Domain:</span>
+            <div class="mxn-form-row">
+                <div>
+                    <input class="form-check-input" type="checkbox" value="1" id="domain-api" name="d" checked />
+                    <label class="form-check-label" for="domain-api">API</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="2" id="domain-page" name="d" checked />
+                    <label class="form-check-label" for="domain-page">Manuals</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="4" id="domain-example" name="d" checked />
+                    <label class="form-check-label" for="domain-example">Examples</label>
+                </div>
+                <div class="ms-auto"></div>
+                <div class="d-flex flex-row align-items-center">
+                    <button class="mxn-subtle-button bi bi-arrow-bar-down" type="button" title="" id="btn-search-facets-visibility"></button>
+                    <button class="mxn-subtle-button bi bi-question-square" type="button" title="" id="btn-search-help-visibility"></button>
+                </div>
+            </div>
+            <!-- Facets -->
+            <span class="mxn-search-label toggle-target d-none">Entity:</span>
+            <div class="mxn-form-row toggle-target d-none" id="entitity_group">
+                <div>
+                    <input class="form-check-input" type="checkbox" value="1" id="entity-generic" name="e" checked />
+                    <label class="form-check-label" for="entity-generic">Page</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="2" id="entity-module" name="e" checked>
+                    <label class="form-check-label" for="entity-module">Module</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="4" id="entity-class" name="e" checked />
+                    <label class="form-check-label" for="entity-class">Class</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="8" id="entity-method" name="e" checked />
+                    <label class="form-check-label" for="entity-method">Method</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="16" id="entity-function" name="e" checked />
+                    <label class="form-check-label" for="entity-function">Function</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="32" id="entity-attribute" name="e" checked />
+                    <label class="form-check-label" for="entity-attribute">Attribute</label>
+                </div>
+            </div>
+            <span class="mxn-search-label toggle-target d-none">Context:</span>
+            <div class="mxn-form-row toggle-target d-none" id="context_group">
+                <div>
+                    <input class="form-check-input" type="checkbox" value="1" id="context-text" name="c" checked />
+                    <label class="form-check-label" for="context-text">Text</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="2" id="context-title" name="c" checked />
+                    <label class="form-check-label" for="context-title">Heading</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="4" id="context-code" name="c" checked />
+                    <label class="form-check-label" for="context-code">Code</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="8" id="context-name" name="c" checked />
+                    <label class="form-check-label" for="context-name">Name</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="16" id="context-signature" name="c" checked />
+                    <label class="form-check-label" for="context-signature">Signature</label>
+                </div>
+                <div>
+                    <input class="form-check-input" type="checkbox" value="32" id="context-meta" name="c" checked />
+                    <label class="form-check-label" for="context-meta">Metadata</label>
+                </div>
+            </div>
+        </div>
+        <div class="mxn-search-details">
+            <div id="search-info"></div>
+            <div id="search-modes">
+                <button class="mxn-subtle-button fw-bold" type="button" title="" id="btn-search-join">OR</button>
+                <button class="mxn-subtle-button bi bi-funnel" type="button" title="" id="btn-search-fuzzy"></button>
+                <button class="mxn-subtle-button bi bi-card-text" type="button" title="" id="btn-result-verbosity"></button>
+                <button class="mxn-subtle-button bi bi-filter-left" type="button" title="" id="btn-result-sorting"></button>
+            </div>
+        </div>
+    </form>
+    <!-- Search results -->
+    <div class="mxn-search-content">
+        <!-- Help panel -->
+        <div class="mxn-search-help d-none" id="search-help">
+            <table class="docutils align-default" style="width: 100%; table-layout: auto">
+                <thead>
+                    <tr>
+                        <th style="white-space: nowrap"><strong>Category</strong></th>
+                        <th style="white-space: nowrap"><strong>Option</strong></th>
+                        <th><strong>Description</strong></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Query</strong></td>
+                        <td></td>
+                        <td>The search does not support special search operators. Terms are joined by default with OR unless the AND join mode is enabled. Queries can contain search literals denoted by double quotes. E.g., <code>foo bar</code> would search for documents that contain <code>foo</code> and/or <code>bar</code> (depending on the selected join option). But <code>"foo bar"</code> would search for the exact phrase "foo bar". The search is case-insensitive. Note that search literals will always implicitly enable strict search mode, even when the user has selected fuzzy mode.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i class="bi bi-arrow-bar-down"></i> / <i class="bi bi-arrow-bar-up"></i>
+                        </td>
+                        <td>Toggles the visibility of the facet selection panel.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i class="bi bi-question-square"></i> / <i class="bi bi-question-square-fill"></i>
+                        </td>
+                        <td>Toggles the visibility of this help panel.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <strong>OR</strong> / <strong>AND</strong>
+                        </td>
+                        <td>Toggles between joining search terms with a logical OR or AND. In OR mode, the search will return results that match any of the search terms, while in AND mode, it will only return results that match all of the search terms.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <i class="bi bi-funnel"></i> / <i class="bi bi-funnel-fill"></i>
+                        </td>
+                        <td>Toggles between fuzzy and strict mode when searching. In fuzzy mode, the search is more lenient and may return more results, while in strict mode, the search is more exacting. Switching modes may affect the relevance of the results.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <i class="bi bi-card-text"></i> / <i class="bi bi-usb-c"></i>
+                        </td>
+                        <td>Toggles between detailed and compact result views. The detailed view shows more information per search hit.</td>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <i class="bi bi-filter-left"></i> / <i class="bi bi-text-left"></i>
+                        </td>
+                        <td>Toggles sorting the search results by relevance only or by a combination of classification and relevance. When sorting by classification and relevance, results are grouped by their type (e.g., pages, classes, methods) and then sorted by relevance within each group.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Facets</strong></td>
+                        <td></td>
+                        <td>Facets restrict the search to specific content types. You must have at least one facet enabled per facet group to see any results. Domain is the largest facet group, enabling or disabling whole groups of content types. Entities are the next level down, allowing you to search within specific types of content such as generic pages or a function definition. Contexts are the most granular level, allowing you to search within specific contexts of the selected entity such as a code block ot the name of an entity.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Domain</strong></td>
+                        <td><i>API</i></td>
+                        <td>Enable matches within API documentation pages.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Manuals</i></td>
+                        <td>Enable matches within general documentation pages.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Examples</i></td>
+                        <td>Enable matches within example pages.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Entity</strong></td>
+                        <td><i>Page</i></td>
+                        <td>Enable matches within a page body that are not one of the following entities.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Classes</i></td>
+                        <td>Enable matches within class definitions.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Methods</i></td>
+                        <td>Enable matches within class method definitions.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Functions</i></td>
+                        <td>Enable matches within module function definitions.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Attributes</i></td>
+                        <td>Enable matches within class or module attribute definitions.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Context</strong></td>
+                        <td><i>Paragraphs</i></td>
+                        <td>
+                            Enable matches within normal text paragraphs of a page.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Headings</i></td>
+                        <td>Enable matches within the headings of a page.</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Code</i></td>
+                        <td>Enable matches within code blocks of a page (e.g., in the Examples domain or code blocks embed elsewhere).</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Names</i></td>
+                        <td>
+                            Enable matches within the names of API entities. This searches the plain names (<code>func</code>), not the qualified
+                            names (<code>foo.bar.func</code>).
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Signatures</i></td>
+                        <td>
+                            Enable matches within the signatures of API entities. The signature is what is shown on top of the entity description, e.g.,
+                            <code>foo.bar.func(a: int, b: str = "Hello") -&gt; bool</code>. When you want to search for fully qualified
+                            names, you should enable this option and disable the "Names" option.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td><i>Metadata</i></td>
+                        <td>Enable matches within the metadata of entities.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="search-results"></div>
+    </div>
+</div>
+    </div>
+</div></body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/js/bootstrap.bundle.min.js" integrity="sha512-HvOjJrdwNpDbkGJIG2ZNqDlVqMo77qbs4Me4cah0HoDrfhrbA+8SBlZn1KrvAQw7cILLPFJvdwIgphzQmMm+Pw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha512-9ZKhgaFdKlsELap/dGw3Iaz5Bj+Las0XXZiRKYZaN9QArg6FtkD5rULNmNH4rTCTFxjPiBGr3MX8smRADRorDA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/minisearch@7.2.0/dist/umd/index.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</html>

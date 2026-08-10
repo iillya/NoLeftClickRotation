@@ -1,0 +1,257 @@
+/* Styles for the custom search of the mxn Sphinx theme. 
+
+This is a fully custom search implementation, not based on the default Sphinx search. */
+
+
+/* mxn-search is injected into the outmost content container by layout.html when this is a search 
+page and we enable always showing a scrollbar to avoid layout shift when results appear, otherwise
+this selector is 'outside of the domain of search styling'. */
+.mxn-search .mxn-scroll {
+    overflow-y: scroll; 
+}
+
+/* The top level container for the search page content. */
+.mxn-search-container {
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- Search Form ------------------------------------------------------------------------------ */
+
+.mxn-search .mxn-body {
+    margin-top: 0;
+}
+
+/* make search form sticky when scrolling but only on the dedicated search page */
+.mxn-search .mxn-search-form { 
+    background-color: var(--col-bg);
+    position: sticky;
+    opacity: 1;
+    top: 0;
+    z-index: 10;
+        border-bottom: var(--brd-solid-1px-normal);
+}
+
+.mxn-search-form h1 {
+    margin-top: var(--spc-large);
+}
+
+#search-overlay {
+  align-items: center;
+  background: var(--col-bg-modal-overlay);
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  overflow-y: scroll;
+}
+
+#search-overlay-wrapper {
+  width: 100%;
+  max-width: var(--sze-content-width);
+  padding: var(--spc-large);
+  margin: 0 auto;
+  position: absolute;
+  top: 0;
+}
+
+/*--- Search Facets --- */
+
+/* The container for all search facets. */
+.mxn-search-facets {
+    align-items: center;
+    display: grid;
+    gap: var(--spc-smaller);
+    grid-template-columns: auto 1fr;
+    margin: var(--spc-normal) var(--spc-small) 0 var(--spc-small);
+}
+
+.mxn-search-form .mxn-search-label {
+    color: var(--col-fg-text-light);
+    margin-right: var(--spc-small);
+}
+
+.mxn-search-form .form-check-label {
+    margin: 0 var(--spc-small);
+}
+
+/* A row inside the search options container, used to group related options. */
+.mxn-search-form .mxn-form-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spc-small);
+    min-height: 32px
+}
+
+/*--- Search Details --- */
+
+.mxn-search-details {
+    align-items: center;
+    display: flex;
+    gap: var(--spc-small);
+    justify-content: space-between;
+    margin: var(--spc-smaller) var(--spc-small) var(--spc-small) var(--spc-small);
+}
+
+/* The 'Found X results' info. */
+.mxn-search-details #search-info {
+    color: var(--col-fg-text-lighter);
+}
+
+/* The result options (e.g. sorting). */
+.mxn-search-content #search-modes {
+    width: fit-content;
+}
+
+/* --- Search Help --- */
+
+/* Help section shown below the search form (when enabled). */
+.mxn-search-help {
+    gap: var(--spc-small);
+    margin: var(--spc-large) 0;
+    position: relative;
+    width: 100%;
+}
+
+.mxn-search-help table {
+    margin: 0;
+}
+
+.mxn-search-help #btn-search-help-close {
+    position: absolute;
+    right: var(--spc-normal);
+}
+
+/* --- Search Results ----------------------------------------------------------------------------*/
+
+/* Holds all dynamically loaded search results and the static results header. */
+.mxn-search-content {
+    margin-top: var(--spc-medium);
+    width: 100%;
+}
+
+/* The container for all search results, everything below this is dynamic. */
+#search-results {
+    display: flex;
+    flex-direction: column;
+}
+
+/* A separator line between results. */
+#search-results .mxn-separator {
+    border-bottom: var(--brd-solid-1px-normal);
+    opacity: 50%;
+}
+
+/* A single search result entry. */
+#search-results .mxn-result {
+    border-radius: var(--brd-radius-normal);
+    color: var(--col-fg-text);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spc-smaller);
+    margin: var(--spc-normal) var(--spc-normal);
+    text-decoration: none !important;
+}
+
+.mxn-result:hover {
+    background-color: var(--col-tint-lighter);
+    cursor: pointer;
+}
+
+/* Contains the major content in a search result (title, snippet, etc.). */
+.mxn-result .mxn-content {
+    align-items: center;
+    display: flex;
+    flex-grow: 1;
+    gap: var(--spc-small);
+    margin: 0;
+}
+
+/* An elment that shows the classification of the match P, C, M, F, etc. */
+.mxn-result .mxn-classification {
+    font-weight: bold;
+    margin-right: var(--spc-small);
+    border: var(--brd-solid-1px-normal);
+    border-radius: var(--brd-radius-normal);
+    padding: var(--spc-smallest) var(--spc-small);
+    height: fit-content;
+}
+
+/* Hold things like signatures or full text that contextualize a match. */
+.mxn-result .mxn-context {
+    color: var(--col-fg-text-light);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spc-smallest);
+    width: 100%;
+}
+
+.mxn-result .mxn-context .mxn-code-result,
+.mxn-result .mxn-context .mxn-text-result,
+.mxn-result .mxn-context .mxn-code-result pre,
+.mxn-result .mxn-context .mxn-text-result pre {
+    margin-bottom: 0;
+}
+
+.mxn-result .mxn-context .mxn-code-result pre,
+.mxn-result .mxn-context .mxn-text-result pre {
+    font-family: var(--fnt-family-roboto-mono);
+    font-size: var(--fnt-size-small);
+    white-space: pre-line;
+}
+
+.mxn-result .mxn-context .mxn-text-result pre {
+    font-family: var(--fnt-family-roboto);
+    font-size: var(--fnt-size-normal);
+}
+
+.mxn-result .mxn-context .mxn-code-result.mxn-value pre {
+    font-size: 90%;
+}
+
+.mxn-result .mxn-context .mxn-signature {
+    color: var(--col-fg-accent-lighter);
+}
+
+.mxn-result .mxn-context .mxn-description {
+    padding-top: var(--spc-smallest);
+}
+
+.mxn-result .mxn-context .mxn-description,
+.mxn-result .mxn-context .mxn-value {
+    color: var(--col-fg-text-light);
+}
+
+.mxn-result .mxn-context .mxn-secondary {
+    opacity: 85%;
+}
+
+/* Holds the classification tags for a search result (e.g. "in Tutorial"). */
+.mxn-result .mxn-tags {
+    align-items: flex-start;
+    color: var(--col-fg-text-lighter);
+    margin-top: var(--spc-small);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spc-normal);
+    font-size: var(--fnt-size-small);
+}
+
+.mxn-result .mxn-tags .mxn-owner::after {
+    content: "|";
+    color: var(--col-fg-text-lighter);
+    margin-left: var(--spc-normal);
+}
+
+/* The search term highlight inside result snippets. */
+.mxn-result mark {
+    padding: 0 var(--spc-smallest);
+    margin: 0;
+    border-radius: var(--brd-radius-normal);
+    background-color: var(--col-fg-accent-tint-light);
+}
