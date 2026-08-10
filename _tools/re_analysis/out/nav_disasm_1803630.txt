@@ -1,0 +1,25 @@
+0000000141803630  488bc4                         mov rax, rsp
+0000000141803633  44884018                       mov byte ptr [rax + 0x18], r8b
+0000000141803637  55                             push rbp
+0000000141803638  4154                           push r12
+000000014180363a  4155                           push r13
+000000014180363c  4156                           push r14
+000000014180363e  4883ec68                       sub rsp, 0x68
+0000000141803642  448b6114                       mov r12d, dword ptr [rcx + 0x14]
+0000000141803646  4c8bea                         mov r13, rdx
+0000000141803649  8b6918                         mov ebp, dword ptr [rcx + 0x18]
+000000014180364c  4c8bf1                         mov r14, rcx
+000000014180364f  c5f82970b8                     vmovaps xmmword ptr [rax - 0x48], xmm6
+0000000141803654  4584c0                         test r8b, r8b
+0000000141803657  0f8402020000                   je 0x14180385f
+000000014180365d  48895810                       mov qword ptr [rax + 0x10], rbx
+0000000141803661  488970d8                       mov qword ptr [rax - 0x28], rsi
+0000000141803665  488978d0                       mov qword ptr [rax - 0x30], rdi
+0000000141803669  4c8978c8                       mov qword ptr [rax - 0x38], r15
+000000014180366d  c5f82978a8                     vmovaps xmmword ptr [rax - 0x58], xmm7
+0000000141803672  c578294098                     vmovaps xmmword ptr [rax - 0x68], xmm8
+0000000141803677  488b02                         mov rax, qword ptr [rdx]
+000000014180367a  4889842490000000               mov qword ptr [rsp + 0x90], rax
+0000000141803682  488b01                         mov rax, qword ptr [rcx]
+0000000141803685  c5fa10bc2494000000             vmovss xmm7, dword ptr [rsp + 0x94]
+000000014180368e  c5fa10b42490000000             vmovss xmm6, dword ptr [rsp + 0x90]

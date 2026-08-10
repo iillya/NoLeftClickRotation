@@ -1,0 +1,104 @@
+0000000141831300  48895c2410                     mov qword ptr [rsp + 0x10], rbx
+0000000141831305  57                             push rdi
+0000000141831306  4883ec30                       sub rsp, 0x30
+000000014183130a  c5fa1002                       vmovss xmm0, dword ptr [rdx]
+000000014183130e  c5fa5ca194010000               vsubss xmm4, xmm0, dword ptr [rcx + 0x194]
+0000000141831316  c5fa104a04                     vmovss xmm1, dword ptr [rdx + 4]
+000000014183131b  c5da59c4                       vmulss xmm0, xmm4, xmm4
+000000014183131f  c5f829742420                   vmovaps xmmword ptr [rsp + 0x20], xmm6
+0000000141831325  c5f25cb198010000               vsubss xmm6, xmm1, dword ptr [rcx + 0x198]
+000000014183132d  c5ca59d6                       vmulss xmm2, xmm6, xmm6
+0000000141831331  c5ea58c8                       vaddss xmm1, xmm2, xmm0
+0000000141831335  c5f251d9                       vsqrtss xmm3, xmm1, xmm1
+0000000141831339  c5e25c053fa0220c               vsubss xmm0, xmm3, dword ptr [rip + 0xc22a03f]
+0000000141831341  c5fa5905cba1200c               vmulss xmm0, xmm0, dword ptr [rip + 0xc20a1cb]
+0000000141831349  c4e1fa2cc0                     vcvttss2si rax, xmm0
+000000014183134e  c5fa1005be76200c               vmovss xmm0, dword ptr [rip + 0xc2076be]
+0000000141831356  48c1f807                       sar rax, 7
+000000014183135a  488d9148010000                 lea rdx, [rcx + 0x148]
+0000000141831361  480500000100                   add rax, 0x10000
+0000000141831367  488bd9                         mov rbx, rcx
+000000014183136a  c5e057db                       vxorps xmm3, xmm3, xmm3
+000000014183136e  c4e1e22ad8                     vcvtsi2ss xmm3, xmm3, rax
+0000000141831373  8b8168010000                   mov eax, dword ptr [rcx + 0x168]
+0000000141831379  c5e259cc                       vmulss xmm1, xmm3, xmm4
+000000014183137d  89442440                       mov dword ptr [rsp + 0x40], eax
+0000000141831381  c5fa5e6c2440                   vdivss xmm5, xmm0, dword ptr [rsp + 0x40]
+0000000141831387  c5d2590581b2200c               vmulss xmm0, xmm5, dword ptr [rip + 0xc20b281]
+000000014183138f  c5f259d0                       vmulss xmm2, xmm1, xmm0
+0000000141831393  c5fa10899c010000               vmovss xmm1, dword ptr [rcx + 0x19c]
+000000014183139b  c5d259056db2200c               vmulss xmm0, xmm5, dword ptr [rip + 0xc20b26d]
+00000001418313a3  c5f25cd2                       vsubss xmm2, xmm1, xmm2
+00000001418313a7  c5fa1089a0010000               vmovss xmm1, dword ptr [rcx + 0x1a0]
+00000001418313af  c5fa11542440                   vmovss dword ptr [rsp + 0x40], xmm2
+00000001418313b5  c5e259de                       vmulss xmm3, xmm3, xmm6
+00000001418313b9  c5e259d0                       vmulss xmm2, xmm3, xmm0
+00000001418313bd  c5f25cd2                       vsubss xmm2, xmm1, xmm2
+00000001418313c1  488d4c2440                     lea rcx, [rsp + 0x40]
+00000001418313c6  c5fa11542444                   vmovss dword ptr [rsp + 0x44], xmm2
+00000001418313cc  e80f4b38ff                     call 0x140bb5ee0
+00000001418313d1  80bba701000000                 cmp byte ptr [rbx + 0x1a7], 0
+00000001418313d8  c5fa10151c76200c               vmovss xmm2, dword ptr [rip + 0xc20761c]
+00000001418313e0  751c                           jne 0x1418313fe
+00000001418313e2  c5fa108354010000               vmovss xmm0, dword ptr [rbx + 0x154]
+00000001418313ea  c5fa588b4c010000               vaddss xmm1, xmm0, dword ptr [rbx + 0x14c]
+00000001418313f2  c5f259da                       vmulss xmm3, xmm1, xmm2
+00000001418313f6  c5fa115c2444                   vmovss dword ptr [rsp + 0x44], xmm3
+00000001418313fc  eb06                           jmp 0x141831404
+00000001418313fe  c5fa105c2444                   vmovss xmm3, dword ptr [rsp + 0x44]
+0000000141831404  80bba601000000                 cmp byte ptr [rbx + 0x1a6], 0
+000000014183140b  751c                           jne 0x141831429
+000000014183140d  c5fa108350010000               vmovss xmm0, dword ptr [rbx + 0x150]
+0000000141831415  c5fa588b48010000               vaddss xmm1, xmm0, dword ptr [rbx + 0x148]
+000000014183141d  c5f259d2                       vmulss xmm2, xmm1, xmm2
+0000000141831421  c5fa11542440                   vmovss dword ptr [rsp + 0x40], xmm2
+0000000141831427  eb06                           jmp 0x14183142f
+0000000141831429  c5fa10542440                   vmovss xmm2, dword ptr [rsp + 0x40]
+000000014183142f  c5f82e9b5c010000               vucomiss xmm3, dword ptr [rbx + 0x15c]
+0000000141831437  751d                           jne 0x141831456
+0000000141831439  c5f82e9358010000               vucomiss xmm2, dword ptr [rbx + 0x158]
+0000000141831441  7513                           jne 0x141831456
+0000000141831443  32c0                           xor al, al
+0000000141831445  488b5c2448                     mov rbx, qword ptr [rsp + 0x48]
+000000014183144a  c5f828742420                   vmovaps xmm6, xmmword ptr [rsp + 0x20]
+0000000141831450  4883c430                       add rsp, 0x30
+0000000141831454  5f                             pop rdi
+0000000141831455  c3                             ret 
+0000000141831456  488b542440                     mov rdx, qword ptr [rsp + 0x40]
+000000014183145b  488bcb                         mov rcx, rbx
+000000014183145e  e82de8ffff                     call 0x14182fc90
+0000000141831463  488b5c2448                     mov rbx, qword ptr [rsp + 0x48]
+0000000141831468  b001                           mov al, 1
+000000014183146a  c5f828742420                   vmovaps xmm6, xmmword ptr [rsp + 0x20]
+0000000141831470  4883c430                       add rsp, 0x30
+0000000141831474  5f                             pop rdi
+0000000141831475  c3                             ret 
+0000000141831476  cc                             int3 
+0000000141831477  cc                             int3 
+0000000141831478  cc                             int3 
+0000000141831479  cc                             int3 
+000000014183147a  cc                             int3 
+000000014183147b  cc                             int3 
+000000014183147c  cc                             int3 
+000000014183147d  cc                             int3 
+000000014183147e  cc                             int3 
+000000014183147f  cc                             int3 
+0000000141831480  c681a401000000                 mov byte ptr [rcx + 0x1a4], 0
+0000000141831487  32c0                           xor al, al
+0000000141831489  c3                             ret 
+000000014183148a  cc                             int3 
+000000014183148b  cc                             int3 
+000000014183148c  cc                             int3 
+000000014183148d  cc                             int3 
+000000014183148e  cc                             int3 
+000000014183148f  cc                             int3 
+0000000141831490  48895c2408                     mov qword ptr [rsp + 8], rbx
+0000000141831495  48896c2410                     mov qword ptr [rsp + 0x10], rbp
+000000014183149a  4889742418                     mov qword ptr [rsp + 0x18], rsi
+000000014183149f  57                             push rdi
+00000001418314a0  4883ec30                       sub rsp, 0x30
+00000001418314a4  488b01                         mov rax, qword ptr [rcx]
+00000001418314a7  498bd8                         mov rbx, r8
+00000001418314aa  488bfa                         mov rdi, rdx
+00000001418314ad  488bf1                         mov rsi, rcx
+00000001418314b0  ff9028010000                   call qword ptr [rax + 0x128]

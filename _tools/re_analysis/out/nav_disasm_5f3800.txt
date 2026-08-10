@@ -1,0 +1,52 @@
+00000001405f3800  4053                           push rbx
+00000001405f3802  4883ec20                       sub rsp, 0x20
+00000001405f3806  833d2b126e0e00                 cmp dword ptr [rip + 0xe6e122b], 0
+00000001405f380d  488bd9                         mov rbx, rcx
+00000001405f3810  755f                           jne 0x1405f3871
+00000001405f3812  b201                           mov dl, 1
+00000001405f3814  c7051a126e0e01000000           mov dword ptr [rip + 0xe6e121a], 1
+00000001405f381e  e86d960000                     call 0x1405fce90
+00000001405f3823  84c0                           test al, al
+00000001405f3825  7444                           je 0x1405f386b
+00000001405f3827  488b8b20030000                 mov rcx, qword ptr [rbx + 0x320]
+00000001405f382e  4533c9                         xor r9d, r9d
+00000001405f3831  4533c0                         xor r8d, r8d
+00000001405f3834  ba01000200                     mov edx, 0x20001
+00000001405f3839  488b01                         mov rax, qword ptr [rcx]
+00000001405f383c  ff9080000000                   call qword ptr [rax + 0x80]
+00000001405f3842  488b0dd7036e0e                 mov rcx, qword ptr [rip + 0xe6e03d7]
+00000001405f3849  4533c9                         xor r9d, r9d
+00000001405f384c  4533c0                         xor r8d, r8d
+00000001405f384f  ba01000100                     mov edx, 0x10001
+00000001405f3854  488b01                         mov rax, qword ptr [rcx]
+00000001405f3857  ff9080000000                   call qword ptr [rax + 0x80]
+00000001405f385d  ff0dd5116e0e                   dec dword ptr [rip + 0xe6e11d5]
+00000001405f3863  b001                           mov al, 1
+00000001405f3865  4883c420                       add rsp, 0x20
+00000001405f3869  5b                             pop rbx
+00000001405f386a  c3                             ret 
+00000001405f386b  ff0dc7116e0e                   dec dword ptr [rip + 0xe6e11c7]
+00000001405f3871  32c0                           xor al, al
+00000001405f3873  4883c420                       add rsp, 0x20
+00000001405f3877  5b                             pop rbx
+00000001405f3878  c3                             ret 
+00000001405f3879  cc                             int3 
+00000001405f387a  cc                             int3 
+00000001405f387b  cc                             int3 
+00000001405f387c  cc                             int3 
+00000001405f387d  cc                             int3 
+00000001405f387e  cc                             int3 
+00000001405f387f  cc                             int3 
+00000001405f3880  4055                           push rbp
+00000001405f3882  53                             push rbx
+00000001405f3883  56                             push rsi
+00000001405f3884  57                             push rdi
+00000001405f3885  4157                           push r15
+00000001405f3887  488d6c24c9                     lea rbp, [rsp - 0x37]
+00000001405f388c  4881ecc0000000                 sub rsp, 0xc0
+00000001405f3893  488bb118080000                 mov rsi, qword ptr [rcx + 0x818]
+00000001405f389a  4c8db900060000                 lea r15, [rcx + 0x600]
+00000001405f38a1  488bd9                         mov rbx, rcx
+00000001405f38a4  488b0da58dc91b                 mov rcx, qword ptr [rip + 0x1bc98da5]
+00000001405f38ab  488b8180210000                 mov rax, qword ptr [rcx + 0x2180]
+00000001405f38b2  4885c0                         test rax, rax

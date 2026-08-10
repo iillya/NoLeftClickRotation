@@ -1,0 +1,55 @@
+000000014180a0f0  4053                           push rbx
+000000014180a0f2  4883ec40                       sub rsp, 0x40
+000000014180a0f6  0fb681dd000000                 movzx eax, byte ptr [rcx + 0xdd]
+000000014180a0fd  488bd9                         mov rbx, rcx
+000000014180a100  84c0                           test al, al
+000000014180a102  7408                           je 0x14180a10c
+000000014180a104  fec8                           dec al
+000000014180a106  8881dd000000                   mov byte ptr [rcx + 0xdd], al
+000000014180a10c  8179081243cdfe                 cmp dword ptr [rcx + 8], 0xfecd4312
+000000014180a113  0f843d020000                   je 0x14180a356
+000000014180a119  8b4148                         mov eax, dword ptr [rcx + 0x48]
+000000014180a11c  89442450                       mov dword ptr [rsp + 0x50], eax
+000000014180a120  c5fa10442450                   vmovss xmm0, dword ptr [rsp + 0x50]
+000000014180a126  c5f82f4150                     vcomiss xmm0, dword ptr [rcx + 0x50]
+000000014180a12b  0f8325020000                   jae 0x14180a356
+000000014180a131  8b414c                         mov eax, dword ptr [rcx + 0x4c]
+000000014180a134  89442450                       mov dword ptr [rsp + 0x50], eax
+000000014180a138  c5fa10442450                   vmovss xmm0, dword ptr [rsp + 0x50]
+000000014180a13e  c5f82f4154                     vcomiss xmm0, dword ptr [rcx + 0x54]
+000000014180a143  0f830d020000                   jae 0x14180a356
+000000014180a149  488b0d789c8a0d                 mov rcx, qword ptr [rip + 0xd8a9c78]
+000000014180a150  448bc2                         mov r8d, edx
+000000014180a153  488bd3                         mov rdx, rbx
+000000014180a156  e8d5c7e9fe                     call 0x1406a6930
+000000014180a15b  488b03                         mov rax, qword ptr [rbx]
+000000014180a15e  488bcb                         mov rcx, rbx
+000000014180a161  ff90e0020000                   call qword ptr [rax + 0x2e0]
+000000014180a167  84c0                           test al, al
+000000014180a169  754b                           jne 0x14180a1b6
+000000014180a16b  3805c71c1a1c                   cmp byte ptr [rip + 0x1c1a1cc7], al
+000000014180a171  0f84ad010000                   je 0x14180a324
+000000014180a177  c5fa1005b51c1a1c               vmovss xmm0, dword ptr [rip + 0x1c1a1cb5]
+000000014180a17f  c5f82e835c010000               vucomiss xmm0, dword ptr [rbx + 0x15c]
+000000014180a187  7512                           jne 0x14180a19b
+000000014180a189  c5fa10059f1c1a1c               vmovss xmm0, dword ptr [rip + 0x1c1a1c9f]
+000000014180a191  c5f82e8358010000               vucomiss xmm0, dword ptr [rbx + 0x158]
+000000014180a199  740f                           je 0x14180a1aa
+000000014180a19b  488b158e1c1a1c                 mov rdx, qword ptr [rip + 0x1c1a1c8e]
+000000014180a1a2  488bcb                         mov rcx, rbx
+000000014180a1a5  e8e65a0200                     call 0x14182fc90
+000000014180a1aa  c605871c1a1c00                 mov byte ptr [rip + 0x1c1a1c87], 0
+000000014180a1b1  e96e010000                     jmp 0x14180a324
+000000014180a1b6  48897c2458                     mov qword ptr [rsp + 0x58], rdi
+000000014180a1bb  488d542420                     lea rdx, [rsp + 0x20]
+000000014180a1c0  488dbbe8010000                 lea rdi, [rbx + 0x1e8]
+000000014180a1c7  4533c9                         xor r9d, r9d
+000000014180a1ca  488bcf                         mov rcx, rdi
+000000014180a1cd  4533c0                         xor r8d, r8d
+000000014180a1d0  e87baeffff                     call 0x141805050
+000000014180a1d5  8b442420                       mov eax, dword ptr [rsp + 0x20]
+000000014180a1d9  c5fa10442428                   vmovss xmm0, dword ptr [rsp + 0x28]
+000000014180a1df  89442450                       mov dword ptr [rsp + 0x50], eax
+000000014180a1e3  c5f82f442450                   vcomiss xmm0, dword ptr [rsp + 0x50]
+000000014180a1e9  0f8624010000                   jbe 0x14180a313
+000000014180a1ef  8b442424                       mov eax, dword ptr [rsp + 0x24]

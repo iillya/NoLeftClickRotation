@@ -1,0 +1,50 @@
+00000001405eb390  4055                           push rbp
+00000001405eb392  53                             push rbx
+00000001405eb393  56                             push rsi
+00000001405eb394  57                             push rdi
+00000001405eb395  488d6c24c1                     lea rbp, [rsp - 0x3f]
+00000001405eb39a  4881ecd8000000                 sub rsp, 0xd8
+00000001405eb3a1  4863b9f8010000                 movsxd rdi, dword ptr [rcx + 0x1f8]
+00000001405eb3a8  488bd9                         mov rbx, rcx
+00000001405eb3ab  4883c70f                       add rdi, 0xf
+00000001405eb3af  488bf2                         mov rsi, rdx
+00000001405eb3b2  4803ff                         add rdi, rdi
+00000001405eb3b5  488b0cf9                       mov rcx, qword ptr [rcx + rdi*8]
+00000001405eb3b9  4885c9                         test rcx, rcx
+00000001405eb3bc  7409                           je 0x1405eb3c7
+00000001405eb3be  488b01                         mov rax, qword ptr [rcx]
+00000001405eb3c1  ff9090010000                   call qword ptr [rax + 0x190]
+00000001405eb3c7  488b04fb                       mov rax, qword ptr [rbx + rdi*8]
+00000001405eb3cb  488945f7                       mov qword ptr [rbp - 9], rax
+00000001405eb3cf  488b057a12ca1b                 mov rax, qword ptr [rip + 0x1bca127a]
+00000001405eb3d6  488bb830890000                 mov rdi, qword ptr [rax + 0x8930]
+00000001405eb3dd  4885ff                         test rdi, rdi
+00000001405eb3e0  7408                           je 0x1405eb3ea
+00000001405eb3e2  0fb67f1c                       movzx edi, byte ptr [rdi + 0x1c]
+00000001405eb3e6  4080e701                       and dil, 1
+00000001405eb3ea  8b05fc8c6e0e                   mov eax, dword ptr [rip + 0xe6e8cfc]
+00000001405eb3f0  c5fa1005fc8c6e0e               vmovss xmm0, dword ptr [rip + 0xe6e8cfc]
+00000001405eb3f8  894567                         mov dword ptr [rbp + 0x67], eax
+00000001405eb3fb  c5f82f4567                     vcomiss xmm0, dword ptr [rbp + 0x67]
+00000001405eb400  0f86cf040000                   jbe 0x1405eb8d5
+00000001405eb406  8b05e48c6e0e                   mov eax, dword ptr [rip + 0xe6e8ce4]
+00000001405eb40c  c5fa1005e48c6e0e               vmovss xmm0, dword ptr [rip + 0xe6e8ce4]
+00000001405eb414  894567                         mov dword ptr [rbp + 0x67], eax
+00000001405eb417  c5f82f4567                     vcomiss xmm0, dword ptr [rbp + 0x67]
+00000001405eb41c  0f86b3040000                   jbe 0x1405eb8d5
+00000001405eb422  833de78d6e0e02                 cmp dword ptr [rip + 0xe6e8de7], 2
+00000001405eb429  4c89b424c8000000               mov qword ptr [rsp + 0xc8], r14
+00000001405eb431  7d1f                           jge 0x1405eb452
+00000001405eb433  c5f857c0                       vxorps xmm0, xmm0, xmm0
+00000001405eb437  c5f82e4608                     vucomiss xmm0, dword ptr [rsi + 8]
+00000001405eb43c  740a                           je 0x1405eb448
+00000001405eb43e  b001                           mov al, 1
+00000001405eb440  8805d88c6e0e                   mov byte ptr [rip + 0xe6e8cd8], al
+00000001405eb446  eb11                           jmp 0x1405eb459
+00000001405eb448  32c0                           xor al, al
+00000001405eb44a  8805ce8c6e0e                   mov byte ptr [rip + 0xe6e8cce], al
+00000001405eb450  eb07                           jmp 0x1405eb459
+00000001405eb452  0fb605c58c6e0e                 movzx eax, byte ptr [rip + 0xe6e8cc5]
+00000001405eb459  84c0                           test al, al
+00000001405eb45b  0f849e000000                   je 0x1405eb4ff
+00000001405eb461  4863bbf8010000                 movsxd rdi, dword ptr [rbx + 0x1f8]

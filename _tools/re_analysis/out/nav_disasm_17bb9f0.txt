@@ -1,0 +1,21 @@
+00000001417bb9f0  4883ec48                       sub rsp, 0x48
+00000001417bb9f4  c5f81012                       vmovups xmm2, xmmword ptr [rdx]
+00000001417bb9f8  c5f811542420                   vmovups xmmword ptr [rsp + 0x20], xmm2
+00000001417bb9fe  4584c0                         test r8b, r8b
+00000001417bba01  0f84a0000000                   je 0x1417bbaa7
+00000001417bba07  c5fa106148                     vmovss xmm4, dword ptr [rcx + 0x48]
+00000001417bba0c  c5f82fe2                       vcomiss xmm4, xmm2
+00000001417bba10  c5f829742430                   vmovaps xmmword ptr [rsp + 0x30], xmm6
+00000001417bba16  760a                           jbe 0x1417bba22
+00000001417bba18  c5fa11642420                   vmovss dword ptr [rsp + 0x20], xmm4
+00000001417bba1e  c5f828d4                       vmovaps xmm2, xmm4
+00000001417bba22  c5fa10594c                     vmovss xmm3, dword ptr [rcx + 0x4c]
+00000001417bba27  c5fa106c2424                   vmovss xmm5, dword ptr [rsp + 0x24]
+00000001417bba2d  c5f82fdd                       vcomiss xmm3, xmm5
+00000001417bba31  760a                           jbe 0x1417bba3d
+00000001417bba33  c5fa115c2424                   vmovss dword ptr [rsp + 0x24], xmm3
+00000001417bba39  c5f828eb                       vmovaps xmm5, xmm3
+00000001417bba3d  c5fa104150                     vmovss xmm0, dword ptr [rcx + 0x50]
+00000001417bba42  c5fa104c2428                   vmovss xmm1, dword ptr [rsp + 0x28]
+00000001417bba48  c5f82fc1                       vcomiss xmm0, xmm1
+00000001417bba4c  730a                           jae 0x1417bba58

@@ -1,0 +1,21 @@
+00000001405edfc0  488bc4                         mov rax, rsp
+00000001405edfc3  55                             push rbp
+00000001405edfc4  53                             push rbx
+00000001405edfc5  56                             push rsi
+00000001405edfc6  4154                           push r12
+00000001405edfc8  4156                           push r14
+00000001405edfca  488da888faffff                 lea rbp, [rax - 0x578]
+00000001405edfd1  4881ec50060000                 sub rsp, 0x650
+00000001405edfd8  c578299078ffffff               vmovaps xmmword ptr [rax - 0x88], xmm10
+00000001405edfe0  48897810                       mov qword ptr [rax + 0x10], rdi
+00000001405edfe4  4533f6                         xor r14d, r14d
+00000001405edfe7  4c8968d0                       mov qword ptr [rax - 0x30], r13
+00000001405edfeb  4c8be2                         mov r12, rdx
+00000001405edfee  4c8978c8                       mov qword ptr [rax - 0x38], r15
+00000001405edff2  488bf1                         mov rsi, rcx
+00000001405edff5  c5f82970b8                     vmovaps xmmword ptr [rax - 0x48], xmm6
+00000001405edffa  c578299868ffffff               vmovaps xmmword ptr [rax - 0x98], xmm11
+00000001405ee002  488b0547e6c91b                 mov rax, qword ptr [rip + 0x1bc9e647]
+00000001405ee009  c57a101d03aa440d               vmovss xmm11, dword ptr [rip + 0xd44aa03]
+00000001405ee011  c4412857d2                     vxorps xmm10, xmm10, xmm10
+00000001405ee016  4c8b8068210000                 mov r8, qword ptr [rax + 0x2168]
