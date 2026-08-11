@@ -11,6 +11,8 @@ LOG = os.path.join(os.environ.get("TEMP", r"C:\Users\liuwenbo\AppData\Local\Temp
                    "nlr_state.log")
 
 WM_TIMER = 0x0113
+WM_LBUTTONDOWN = 0x0201
+WM_LBUTTONUP = 0x0202
 TIMER_ID = 0x4E4C5354
 SUBCLASS_ID = 0x4E4C5355
 VK_F9 = 0x78
@@ -185,24 +187,73 @@ def _snap():
     return out
 
 
+def _controller_bytes():
+    if not _hooks:
+        return 0, None
+    stub = _hooks[0]["stub"]
+    controller = ctypes.c_uint64.from_address(stub + 0x60).value
+    if not controller:
+        return 0, None
+    return controller, _read_mem(controller, 0x1000)
+
+
+def _log_diff(label, controller, before, after):
+    if before is None or after is None:
+        _dlog("%s ctrl=%#x snapshot-missing" % (label, controller))
+        return
+    changed = [
+        (index, left, right)
+        for index, (left, right) in enumerate(zip(before, after))
+        if left != right
+    ]
+    _dlog("%s ctrl=%#x changed=%d" % (label, controller, len(changed)))
+    for index, left, right in changed[:256]:
+        _dlog("  +%#05x %02x>%02x" % (index, left, right))
+
+
 _hwnd = None
 _last_report = 0.0
 _recording = False
 _f9_prev = False
+_installed = False
+_left_prev = False
+_edge_snapshot = None
 
 
 def _tick() -> None:
-    global _last_report, _recording, _f9_prev
+    global _last_report, _recording, _f9_prev, _installed
+    global _left_prev, _edge_snapshot
     try:
         f9 = bool(user32.GetAsyncKeyState(VK_F9) & 0x8000)
         if f9 and not _f9_prev:
-            _recording = not _recording
+            if not _installed:
+                _installed = _install()
+                _dlog("F9 install %s" % ("OK" if _installed else "FAILED"))
+            _recording = _installed and not _recording
+            _left_prev = bool(user32.GetAsyncKeyState(0x01) & 0x8000)
+            controller, _edge_snapshot = _controller_bytes()
+            _dlog("baseline ctrl=%#x" % controller)
             _dlog("F9 -> recording %s" % ("ON" if _recording else "OFF"))
         _f9_prev = f9
         if not _recording:
             return
         down = bool(user32.GetAsyncKeyState(0x01) & 0x8000)
         rdown = bool(user32.GetAsyncKeyState(0x02) & 0x8000)
+        if _edge_snapshot is None:
+            controller, current = _controller_bytes()
+            if current is not None:
+                _edge_snapshot = current
+                _dlog("controller ready ctrl=%#x" % controller)
+        if down != _left_prev:
+            controller, current = _controller_bytes()
+            _log_diff(
+                "EDGE_DOWN" if down else "EDGE_UP",
+                controller,
+                _edge_snapshot,
+                current,
+            )
+            _edge_snapshot = current
+            _left_prev = down
         s = _snap()
         now = time.time()
         if now - _last_report >= 0.15:
@@ -264,8 +315,6 @@ def main() -> None:
     except Exception:
         pass
     _dlog("main start")
-    if not _install():
-        return
     hwnd = None
     for _ in range(20):
         _enum_result[0] = None
