@@ -1,9 +1,0 @@
-bp 1405e4d90
-run
-log "HIT_5E4D90"
-log cip
-log rcx
-log rdx
-log r8
-log rsp
-detach

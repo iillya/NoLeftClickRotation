@@ -1,8 +1,0 @@
-bp 1418a053f
-run
-log "HIT_53F"
-log cip
-log r13
-log rax
-log rsp
-detach

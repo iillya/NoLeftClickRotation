@@ -1,521 +1,151 @@
 # -*- coding: utf-8 -*-
-"""Bridge a blank-canvas left drag into sculpting when it reaches a model.
+"""NoLeftClickRotation（禁用左键视图旋转）- 单文件 Python 插件（ZBrush 2026）。
 
-ZBrush 2026.1.1 / Windows only. UI and mesh input pass through unchanged. A
-blank-canvas down is held until its drag reaches a model. The plug-in is
-deliberately inactive outside Edit mode.
+原理：
+1. 相机锁定：插件启用期间保持 Draw:Lock Camera 开启，左键拖空白不旋转、
+   Alt+左键不平移（用官方 toggle 切换，锁定参考点同步更新）。
+2. 右键临时解锁：右键按住时解锁相机，右键拖动照常旋转；松开后延迟 1ms
+   重新锁定（避免旋转手势未结束时锁定触发回弹）。
+3. 不吞任何消息、不合成任何鼠标事件，界面按钮/滑块完全不受影响。
+
+安装：将本文件复制到
+  %APPDATA%\\Maxon\\Maxon ZBrush 2026_XXXX\\ZStartup\\ZPlugs64\\
+（ZBrush 启动时自动加载 ZPlugs64 下的 Python 插件。）
 """
 
 import ctypes
 import os
-import struct
 import time
 from ctypes import wintypes
 
+# ---------------- 窗口常量 ----------------
 
-PLUGIN_VERSION = "Candidate 1"
-
-# Win32 messages and key flags.
 WM_TIMER = 0x0113
-WM_CANCELMODE = 0x001F
-WM_LBUTTONDOWN = 0x0201
-WM_LBUTTONUP = 0x0202
-WM_MOUSEMOVE = 0x0200
-WM_CAPTURECHANGED = 0x0215
-WM_NCDESTROY = 0x0082
+WM_RBUTTONDOWN = 0x0204
+WM_RBUTTONUP = 0x0205
 
-MK_LBUTTON = 0x0001
-MK_SHIFT = 0x0004
-MK_CONTROL = 0x0008
-VK_LBUTTON = 0x01
 VK_RBUTTON = 0x02
-VK_SHIFT = 0x10
-VK_CONTROL = 0x11
-VK_MENU = 0x12
 
-CANVAS_WINDOW_ID = 1004
-POLL_INTERVAL_MS = 10
-RIGHT_RELEASE_LOCK_DELAY_SECONDS = 0.010
-TIMER_ID = 0x4E4C5231
-SUBCLASS_ID = 0x4E4C5231
+SUBCLASS_ID = 0x4E4C524E
+SAMPLE_TIMER_ID = 0x4E4C5253
+RELOCK_TIMER_ID = 0x4E4C524C
 
-# Gesture states.
-IDLE = 0
-UI_PASS = 1
-MESH_PASS = 2
-WAIT_FOR_MESH = 3
-BRIDGED = 4
-
-# ZBrush paths.
-WINDOW_ID_PATH = "Preferences:Utilities:View Window Id"
-EDIT_PATH = "Transform:Edit"
-LOCK_CAMERA_PATH = "Draw:Lock Camera"
-LIGHTBOX_BUTTON_PATH = "Preferences:LightBox:LightBox"
-
-# Reverse-engineered for ZBrush.exe 2026.1.1.1.
-# The instruction loads the global state pointer used by the native PixolPick
-# canvas-selection branch. Its RIP displacement is decoded at runtime.
-PIXOL_STATE_LOAD_RVA = 0x5EDAC2
-PIXOL_STATE_LOAD_SIGNATURE = bytes.fromhex("488b0587ebc91b")
-PIXOL_FLAGS_OFFSET = 0x11584
-PIXOL_STABLE_CANVAS_BIT = 0x00200000
-
-PLUGIN_NAME = "No Left Click Rotation"
-PALETTE = "Zplugin:" + PLUGIN_NAME
-BODY = PALETTE + ":Body"
-SWITCH_PATH = BODY + ":Enable"
-
-LOG_PATH = os.path.join(
-    os.environ.get("TEMP", os.path.dirname(__file__)),
-    "NoLeftClickRotation.log",
-)
+RELOCK_DELAY: float = 0.001
 
 LRESULT = ctypes.c_ssize_t
 WPARAM = ctypes.c_size_t
 LPARAM = ctypes.c_ssize_t
-UINT_PTR = ctypes.c_size_t
 
-user32 = ctypes.WinDLL("user32", use_last_error=True)
-comctl32 = ctypes.WinDLL("comctl32", use_last_error=True)
-kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+user32 = ctypes.WinDLL("user32")
+comctl32 = ctypes.WinDLL("comctl32")
 
-SubclassProc = ctypes.WINFUNCTYPE(
-    LRESULT,
-    wintypes.HWND,
-    wintypes.UINT,
-    WPARAM,
-    LPARAM,
-    ctypes.c_void_p,
-    ctypes.c_void_p,
+SubclassProcType = ctypes.WINFUNCTYPE(
+    LRESULT, wintypes.HWND, wintypes.UINT, WPARAM, LPARAM,
+    ctypes.c_void_p, ctypes.c_void_p,
 )
-EnumWindowsProc = ctypes.WINFUNCTYPE(
-    wintypes.BOOL, wintypes.HWND, wintypes.LPARAM
-)
+WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
 
-kernel32.GetModuleHandleW.restype = ctypes.c_void_p
-kernel32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
 user32.EnumWindows.restype = wintypes.BOOL
-user32.EnumWindows.argtypes = [EnumWindowsProc, wintypes.LPARAM]
+user32.EnumWindows.argtypes = [WNDENUMPROC, wintypes.LPARAM]
 user32.GetClassNameW.restype = ctypes.c_int
 user32.GetClassNameW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
 user32.GetWindowThreadProcessId.restype = wintypes.DWORD
 user32.GetWindowThreadProcessId.argtypes = [
-    wintypes.HWND,
-    ctypes.POINTER(wintypes.DWORD),
+    wintypes.HWND, ctypes.POINTER(wintypes.DWORD),
 ]
+user32.SetTimer.restype = ctypes.c_void_p
+user32.SetTimer.argtypes = [wintypes.HWND, ctypes.c_void_p, wintypes.UINT, ctypes.c_void_p]
 user32.GetAsyncKeyState.restype = ctypes.c_short
 user32.GetAsyncKeyState.argtypes = [ctypes.c_int]
-user32.GetCursorPos.restype = wintypes.BOOL
-user32.GetCursorPos.argtypes = [ctypes.POINTER(wintypes.POINT)]
-user32.ScreenToClient.restype = wintypes.BOOL
-user32.ScreenToClient.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
-user32.SetTimer.restype = UINT_PTR
-user32.SetTimer.argtypes = [
-    wintypes.HWND,
-    UINT_PTR,
-    wintypes.UINT,
-    ctypes.c_void_p,
-]
-user32.KillTimer.restype = wintypes.BOOL
-user32.KillTimer.argtypes = [wintypes.HWND, UINT_PTR]
-user32.SendMessageW.restype = LRESULT
-user32.SendMessageW.argtypes = [
-    wintypes.HWND,
-    wintypes.UINT,
-    WPARAM,
-    LPARAM,
-]
+
 comctl32.SetWindowSubclass.restype = wintypes.BOOL
 comctl32.SetWindowSubclass.argtypes = [
-    wintypes.HWND,
-    SubclassProc,
-    UINT_PTR,
-    UINT_PTR,
-]
-comctl32.RemoveWindowSubclass.restype = wintypes.BOOL
-comctl32.RemoveWindowSubclass.argtypes = [
-    wintypes.HWND,
-    SubclassProc,
-    UINT_PTR,
+    wintypes.HWND, SubclassProcType, ctypes.c_size_t, ctypes.c_size_t,
 ]
 comctl32.DefSubclassProc.restype = LRESULT
-comctl32.DefSubclassProc.argtypes = [
-    wintypes.HWND,
-    wintypes.UINT,
-    WPARAM,
-    LPARAM,
-]
+comctl32.DefSubclassProc.argtypes = [wintypes.HWND, wintypes.UINT, WPARAM, LPARAM]
 
-_enabled = True
-_hwnd = 0
-_gesture = IDLE
-_injecting = False
-_pixol_flags_address = 0
-_version_ok = False
-_last_status = ""
-_camera_session = False
-_right_was_down = False
-_right_unlock_until = 0.0
-_lightbox_overlay_open = False
+# ---------------- 配置 ----------------
+
+PLUGIN_DIR: str = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH: str = os.path.join(PLUGIN_DIR, "config.txt")
+
+_enabled: bool = True
 
 
-def _log(message):
+def _read_config() -> None:
+    global _enabled
     try:
-        with open(LOG_PATH, "a", encoding="utf-8") as stream:
-            stream.write("%s %s\n" % (time.strftime("%H:%M:%S"), message))
-    except OSError:
-        pass
-
-
-def _key_down(vkey):
-    return bool(user32.GetAsyncKeyState(vkey) & 0x8000)
-
-
-def _zbrush_switch(path, default=False):
-    try:
-        import zbrush.commands as zbc
-
-        if not zbc.exists(path):
-            return default
-        return bool(float(zbc.get(path)))
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        if lines:
+            _enabled = lines[0].strip() != "0"
     except Exception:
-        return default
+        _enabled = True
 
 
-def _active():
-    return _enabled and _version_ok and _zbrush_switch(EDIT_PATH, False)
-
-
-def _lightbox_flags():
+def _save_config() -> None:
     try:
-        import zbrush.commands as zbc
-
-        return int(zbc.get_flags(LIGHTBOX_BUTTON_PATH))
-    except Exception:
-        return -1
-
-
-def _lightbox_open():
-    return _lightbox_overlay_open
-
-
-def _is_canvas():
-    return _window_id() == CANVAS_WINDOW_ID
-
-
-def _window_id():
-    try:
-        import zbrush.commands as zbc
-
-        return int(round(float(zbc.get(WINDOW_ID_PATH))))
-    except Exception:
-        return -1
-
-
-def _material_under_pointer():
-    """Read mat from the stable canvas buffer, restoring all native state."""
-
-    if not _pixol_flags_address:
-        return 0.0
-    import zbrush.commands as zbc
-
-    x, y = zbc.get_mouse_pos(global_coordinates=False)
-    flags = ctypes.c_uint32.from_address(_pixol_flags_address)
-    original = flags.value
-    try:
-        flags.value = original | PIXOL_STABLE_CANVAS_BIT
-        return float(zbc.pixol_pick(5, float(x), float(y)))
-    finally:
-        flags.value = original
-
-
-def _pointer_on_mesh():
-    try:
-        return _material_under_pointer() != 0.0
-    except Exception as exception:
-        _log("pixol_error=" + repr(exception))
-        return False
-
-
-def _set_zbrush_switch(path, value):
-    try:
-        import zbrush.commands as zbc
-
-        current = _zbrush_switch(path, bool(value))
-        if current == bool(value):
-            return True
-        try:
-            zbc.set(path, 1.0 if value else 0.0)
-        except Exception:
-            zbc.toggle(path)
-        return _zbrush_switch(path, not bool(value)) == bool(value)
-    except Exception:
-        return False
-
-
-def _sync_camera_lock():
-    global _camera_session, _right_was_down, _right_unlock_until
-
-    controlled = _active()
-    if not controlled:
-        if _camera_session or not _enabled:
-            _set_zbrush_switch(LOCK_CAMERA_PATH, False)
-        _camera_session = False
-        _right_was_down = False
-        _right_unlock_until = 0.0
-        return
-
-    if not _camera_session:
-        _camera_session = True
-
-    now = time.perf_counter()
-    right_down = _key_down(VK_RBUTTON)
-    if right_down:
-        _right_was_down = True
-        _right_unlock_until = 0.0
-        _set_zbrush_switch(LOCK_CAMERA_PATH, False)
-        return
-
-    if _right_was_down:
-        _right_was_down = False
-        _right_unlock_until = now + RIGHT_RELEASE_LOCK_DELAY_SECONDS
-
-    if now < _right_unlock_until:
-        _set_zbrush_switch(LOCK_CAMERA_PATH, False)
-        return
-
-    _right_unlock_until = 0.0
-    _set_zbrush_switch(LOCK_CAMERA_PATH, True)
-
-
-def _reset_gesture():
-    global _gesture
-    _gesture = IDLE
-
-
-def _mouse_lparam(hwnd):
-    point = wintypes.POINT()
-    if not user32.GetCursorPos(ctypes.byref(point)):
-        return 0
-    if not user32.ScreenToClient(hwnd, ctypes.byref(point)):
-        return 0
-    return ((point.y & 0xFFFF) << 16) | (point.x & 0xFFFF)
-
-
-def _mouse_wparam():
-    return _modifier_wparam() | MK_LBUTTON
-
-
-def _modifier_wparam():
-    value = 0
-    if _key_down(VK_SHIFT):
-        value |= MK_SHIFT
-    if _key_down(VK_CONTROL):
-        value |= MK_CONTROL
-    return value
-
-
-def _start_sculpting(hwnd):
-    """Deliver the gesture's first native down at the current model point."""
-
-    global _gesture, _injecting
-    _gesture = BRIDGED
-    _injecting = True
-    try:
-        wparam = _mouse_wparam()
-        lparam = _mouse_lparam(hwnd)
-        user32.SendMessageW(hwnd, WM_LBUTTONDOWN, wparam, lparam)
-        user32.SendMessageW(hwnd, WM_MOUSEMOVE, wparam, lparam)
-        _status("MODEL FOUND: sculpting started")
-    finally:
-        _injecting = False
-
-
-def _status(message):
-    global _last_status
-    if message == _last_status:
-        return
-    _last_status = message
-    _log(message)
-    try:
-        import zbrush.commands as zbc
-
-        zbc.set_notebar_text("NLR: " + message)
+        tmp = CONFIG_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write("1\n" if _enabled else "0\n")
+        os.replace(tmp, CONFIG_PATH)
     except Exception:
         pass
 
 
-def _begin_left(hwnd, msg, wparam, lparam):
-    global _gesture, _lightbox_overlay_open
-
-    flags = _lightbox_flags()
-    window_id = _window_id()
-    # 0x8 is present both on the normal canvas and inside LightBox, so it is
-    # not a visibility bit. 0x4 appears only while the LightBox switch is
-    # being pressed. Use that edge without depending on a View Window ID.
-    if flags >= 0 and flags & 0x4:
-        _lightbox_overlay_open = not _lightbox_overlay_open
-        _gesture = UI_PASS
-        _log(
-            "LB flags=%#x wid=%d decision=PASS_LIGHTBOX_TOGGLE open=%d"
-            % (flags, window_id, int(_lightbox_overlay_open))
-        )
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if not _active():
-        _reset_gesture()
-        _log("LB flags=%#x wid=%d decision=PASS_INACTIVE" % (flags, window_id))
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if _lightbox_open():
-        _gesture = UI_PASS
-        _log("LB flags=%#x wid=%d decision=PASS_LIGHTBOX" % (flags, window_id))
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if window_id != CANVAS_WINDOW_ID:
-        _gesture = UI_PASS
-        _log("LB flags=%#x wid=%d decision=PASS_UI" % (flags, window_id))
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if _pointer_on_mesh():
-        _gesture = MESH_PASS
-        _log("LB flags=%#x wid=%d decision=PASS_MESH" % (flags, window_id))
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    # Preserve native Ctrl/Alt canvas gestures (masking/navigation shortcuts).
-    if _key_down(VK_CONTROL) or _key_down(VK_MENU):
-        _gesture = UI_PASS
-        _log("LB flags=%#x wid=%d decision=PASS_MODIFIER" % (flags, window_id))
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    _gesture = WAIT_FOR_MESH
-    _log("LB flags=%#x wid=%d decision=SWALLOW_BLANK" % (flags, window_id))
-    _status("blank canvas: waiting for model")
-    return 0
+def load_enabled() -> bool:
+    return _enabled
 
 
-def _poll_waiting(hwnd):
-    if _gesture != WAIT_FOR_MESH:
-        return
-    if not _active() or _lightbox_open() or not _key_down(VK_LBUTTON):
-        _reset_gesture()
-        return
-    if _pointer_on_mesh():
-        _start_sculpting(hwnd)
-
-
-def _handle(hwnd, msg, wparam, lparam):
-    global _gesture
-
-    if _injecting:
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if msg == WM_TIMER and int(wparam) == TIMER_ID:
-        _sync_camera_lock()
-        _poll_waiting(hwnd)
-        return 0
-
-    if msg == WM_LBUTTONDOWN:
-        return _begin_left(hwnd, msg, wparam, lparam)
-
-    if msg == WM_MOUSEMOVE:
-        if _gesture == WAIT_FOR_MESH:
-            _poll_waiting(hwnd)
-            if _gesture == WAIT_FOR_MESH:
-                return 0
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if msg == WM_LBUTTONUP:
-        previous = _gesture
-        _reset_gesture()
-        if previous == WAIT_FOR_MESH:
-            _status("blank gesture discarded")
-            return 0
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if msg in (WM_CANCELMODE, WM_CAPTURECHANGED):
-        _reset_gesture()
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if msg == WM_NCDESTROY:
-        global _camera_session
-        if _camera_session:
-            _set_zbrush_switch(LOCK_CAMERA_PATH, False)
-            _camera_session = False
-        user32.KillTimer(hwnd, TIMER_ID)
-        comctl32.RemoveWindowSubclass(hwnd, _subclass, SUBCLASS_ID)
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-
-@SubclassProc
-def _subclass(hwnd, msg, wparam, lparam, subclass_id, reference_data):
-    del subclass_id, reference_data
-    try:
-        return _handle(hwnd, msg, wparam, lparam)
-    except Exception as exception:
-        _log("callback_error=" + repr(exception))
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-
-@EnumWindowsProc
-def _find_zbrush(hwnd, lparam):
-    del lparam
-    global _hwnd
-    try:
-        class_name = ctypes.create_unicode_buffer(128)
-        if user32.GetClassNameW(hwnd, class_name, len(class_name)):
-            if class_name.value == "ZBrush":
-                pid = wintypes.DWORD()
-                user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-                if pid.value == os.getpid():
-                    _hwnd = int(hwnd)
-                    return False
-    except Exception:
-        pass
-    return True
-
-
-def _validate_native_layout():
-    """Resolve the private flag only when the exact instruction matches."""
-
-    global _pixol_flags_address, _version_ok
-    image_base = int(kernel32.GetModuleHandleW(None) or 0)
-    site = image_base + PIXOL_STATE_LOAD_RVA
-    actual = ctypes.string_at(site, len(PIXOL_STATE_LOAD_SIGNATURE))
-    if actual != PIXOL_STATE_LOAD_SIGNATURE:
-        _log("unsupported_signature=" + actual.hex())
-        return False
-
-    displacement = struct.unpack("<i", actual[3:7])[0]
-    pointer_slot = site + 7 + displacement
-    state = ctypes.c_void_p.from_address(pointer_slot).value
-    if not state:
-        _log("state_pointer_is_null")
-        return False
-
-    _pixol_flags_address = int(state) + PIXOL_FLAGS_OFFSET
-    # A readable round-trip is sufficient; the value itself is dynamic.
-    ctypes.c_uint32.from_address(_pixol_flags_address).value
-    _version_ok = True
-    _log(
-        "native_layout_ok image=%#x slot=%#x flags=%#x"
-        % (image_base, pointer_slot, _pixol_flags_address)
-    )
-    return True
-
-
-def _toggle(sender, value):
-    del sender
+def save_enabled(value: bool) -> None:
     global _enabled
     _enabled = bool(value)
-    _reset_gesture()
-    _sync_camera_lock()
-    _status("enabled" if _enabled else "disabled")
+    _save_config()
 
 
-def _setup_ui():
+# ---------------- 语言与界面 ----------------
+
+
+def detect_language() -> str:
+    try:
+        lang_id: int = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+        if (lang_id & 0x3FF) == 0x04:
+            return "zh"
+    except Exception:
+        pass
+    return "en"
+
+
+LANG: str = detect_language()
+if LANG == "zh":
+    PLUGIN_NAME: str = "禁用左键视图旋转"
+    SWITCH_LABEL: str = "启用"
+    SWITCH_INFO: str = (
+        "锁定相机：左键拖空白不旋转、Alt+左键不平移；右键按住可旋转。"
+    )
+else:
+    PLUGIN_NAME = "NoLeftClickRotation"
+    SWITCH_LABEL = "Enable"
+    SWITCH_INFO = (
+        "Camera stays locked: left-drag on blank canvas won't rotate or pan; "
+        "hold the right button to rotate."
+    )
+
+PALETTE: str = "Zplugin:" + PLUGIN_NAME
+BODY: str = PALETTE + ":Body"
+SWITCH_PATH: str = BODY + ":" + SWITCH_LABEL
+
+
+def on_toggle(sender: str, value: bool) -> None:
+    save_enabled(bool(value))
+    if not value:
+        if _hwnd:
+            user32.KillTimer(_hwnd, RELOCK_TIMER_ID)
+        _restore_camera()
+
+
+def setup_ui() -> None:
     import zbrush.commands as zbc
 
     if zbc.exists(PALETTE):
@@ -524,48 +154,156 @@ def _setup_ui():
         zbc.close(BODY)
     zbc.add_subpalette(PALETTE, title_mode=0)
     zbc.add_subpalette(BODY, title_mode=2)
-    zbc.add_switch(
-        SWITCH_PATH,
-        True,
-        "Edit mode only. UI and model input pass through; blank drags start sculpting when they reach a model.",
-        _toggle,
-        initially_disabled=False,
-        width=1.0,
-    )
+    zbc.add_switch(SWITCH_PATH, load_enabled(), SWITCH_INFO, on_toggle,
+                   initially_disabled=False, width=1.0)
 
 
-def main():
-    with open(LOG_PATH, "w", encoding="utf-8") as stream:
-        stream.write(
-            "=== NoLeftClickRotation 2026.1.1 - %s ===\n" % PLUGIN_VERSION
-        )
+# ---------------- 相机锁定 ----------------
 
+LOCK_CAMERA_PATH: str = "Draw:Lock Camera"
+
+
+def _get_lock_state() -> bool:
     try:
-        _setup_ui()
-    except Exception as exception:
-        _log("ui_error=" + repr(exception))
+        import zbrush.commands as zbc
+        return bool(float(zbc.get(LOCK_CAMERA_PATH)))
+    except Exception:
+        return True
 
-    if not _validate_native_layout():
-        _status("unsupported ZBrush version; disabled")
-        return
 
-    user32.EnumWindows(_find_zbrush, 0)
-    if not _hwnd:
-        _log("ZBrush_window_not_found")
+def _apply_lock(want: bool) -> None:
+    try:
+        import zbrush.commands as zbc
+        if _get_lock_state() == want:
+            return
+        # Only use toggle; zbc.set on Lock Camera can cause camera snap-back.
+        # If toggle fails, leave it to the fallback poll to retry.
+        zbc.toggle(LOCK_CAMERA_PATH)
+    except Exception:
+        pass
+
+
+def _restore_camera() -> None:
+    try:
+        import zbrush.commands as zbc
+        if _get_lock_state():
+            zbc.toggle(LOCK_CAMERA_PATH)
+    except Exception:
+        pass
+
+
+def _right_down() -> bool:
+    try:
+        return bool(user32.GetAsyncKeyState(VK_RBUTTON) & 0x8000)
+    except Exception:
+        return False
+
+
+def _start_relock_timer(hwnd) -> None:
+    if hwnd:
+        user32.KillTimer(hwnd, RELOCK_TIMER_ID)
+        user32.SetTimer(hwnd, RELOCK_TIMER_ID, max(1, int(RELOCK_DELAY * 1000)), None)
+
+
+def _camera_sync() -> None:
+    """Fallback consistency check (slow) in case button messages are missed."""
+    if not load_enabled():
         return
-    if not comctl32.SetWindowSubclass(_hwnd, _subclass, SUBCLASS_ID, 0):
-        _log("SetWindowSubclass_failed")
-        return
-    if not user32.SetTimer(_hwnd, TIMER_ID, POLL_INTERVAL_MS, None):
-        comctl32.RemoveWindowSubclass(_hwnd, _subclass, SUBCLASS_ID)
-        _log("SetTimer_failed")
-        return
-    _sync_camera_lock()
-    _status("ready")
+    down = _right_down()
+    if down:
+        _apply_lock(False)
+    else:
+        _apply_lock(True)
+
+
+# ---------------- 消息处理 ----------------
+
+_hwnd = None
+
+
+def _handle_message(hwnd, msg, wparam, lparam) -> int:
+    try:
+        if msg == WM_TIMER and wparam == SAMPLE_TIMER_ID:
+            _camera_sync()
+            return 0
+        if msg == WM_TIMER and wparam == RELOCK_TIMER_ID:
+            user32.KillTimer(hwnd, RELOCK_TIMER_ID)
+            if load_enabled() and not _right_down():
+                _apply_lock(True)
+            return 0
+        if msg == WM_RBUTTONDOWN:
+            user32.KillTimer(hwnd, RELOCK_TIMER_ID)
+            if load_enabled():
+                _apply_lock(False)
+            return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
+        if msg == WM_RBUTTONUP:
+            if load_enabled():
+                _start_relock_timer(hwnd)
+            return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
+    except Exception:
+        pass
+    return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
+
+
+@SubclassProcType
+def _subclass_proc(hwnd, msg, wparam, lparam, u_id, ref_data) -> int:
+    try:
+        return _handle_message(hwnd, msg, wparam, lparam)
+    except Exception:
+        pass
+    return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
+
+
+_subclass_callback = _subclass_proc
+_enum_result: list = [None]
+
+
+@WNDENUMPROC
+def _enum_find_zbrush(hwnd, lparam) -> bool:
+    try:
+        buf = ctypes.create_unicode_buffer(256)
+        if user32.GetClassNameW(hwnd, buf, 256) and buf.value == "ZBrush":
+            pid = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+            if pid.value == os.getpid():
+                _enum_result[0] = hwnd
+                return False
+    except Exception:
+        pass
+    return True
+
+
+_enum_callback = _enum_find_zbrush
+
+
+def main() -> None:
+    _read_config()
+    try:
+        setup_ui()
+    except Exception:
+        pass
+    if load_enabled():
+        _apply_lock(True)
+    hwnd = None
+    for _ in range(20):
+        _enum_result[0] = None
+        try:
+            user32.EnumWindows(_enum_find_zbrush, 0)
+        except Exception:
+            pass
+        hwnd = _enum_result[0]
+        if hwnd:
+            break
+        time.sleep(0.5)
+    global _hwnd
+    _hwnd = hwnd
+    if hwnd:
+        comctl32.SetWindowSubclass(hwnd, _subclass_proc, SUBCLASS_ID, 0)
+        user32.SetTimer(hwnd, SAMPLE_TIMER_ID, 100, None)
 
 
 if __name__ == "__main__":
     try:
         main()
-    except Exception as exception:
-        _log("fatal=" + repr(exception))
+    except Exception:
+        pass
