@@ -21,6 +21,11 @@
         [ISet,"Draw:Lock Camera",0]
         [FileExecute,[Var,nlrDll],Shutdown]
     ,
+        // Re-sync from the actual switch every wake: at startup the switch is
+        // created pressed (display shows enabled) but IGet inside the same
+        // script run can return 0 before ZBrush registers the item, which
+        // left the plugin inactive until the user toggled it by hand.
+        [VarSet,nlrEnabled,[IGet,"ZPlugin:No Left Click Rotation:Enable"]]
         [VarSet,nlrStateBits,[Var,nlrEnabled]]
         [If,[IGet,Transform:Edit],
             [VarAdd,nlrStateBits,2]
@@ -92,9 +97,13 @@
 ]
 
 [RoutineDef,NLRStartSleep,
+    // Mask includes 256 (Startup): when ZBrush auto-loads this plugin at
+    // startup, timer wakes may not be dispatched until startup finishes, so
+    // the Startup event is what starts the loop. The timer (1) covers manual
+    // reloads after ZBrush is already running.
     [Sleep,0.005,
         [RoutineCall,NLRWake],
-        1+2+4+8+64+128+512,
+        1+2+4+8+64+128+256+512,
         nlrEvent,
         nlrWindow
     ]

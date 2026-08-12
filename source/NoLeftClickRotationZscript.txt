@@ -14,13 +14,30 @@
 [VarDef,nlrLockTick,0]
 [VarDef,nlrHoverNeed,0]
 [VarDef,nlrRight,0]
+[VarDef,nlrTraceTick,0]
 
 [RoutineDef,NLRWake,
+    // Temporary diagnostic: log the wake event code every 50 wakes.
+    [VarAdd,nlrTraceTick,1]
+    [If,[Var,nlrTraceTick] >= 50,
+        [VarSet,nlrTraceTick,0]
+        [FileExecute,[Var,nlrDll],Trace,[StrMerge,"ev=",[Var,nlrEvent]]]
+    ]
     [If,[Var,nlrEvent] == 512,
-        // ZBrush is shutting down; let the DLL restore its hooks.
+        // Another ZScript/plugin took focus (ZBrush allows only one sleeping
+        // script at a time). Release the camera and re-arm the sleep waiting
+        // for the focus/startup event so the loop resumes when focus returns.
+        // The DLL must stay alive (no Shutdown here) so the poke timer keeps
+        // running and can wake us again.
+        [FileExecute,[Var,nlrDll],Trace,"ev=512 focus lost"]
         [ISet,"Draw:Lock Camera",0]
-        [FileExecute,[Var,nlrDll],Shutdown]
+        [SleepAgain,0.005,1+2+4+8+64+128+256+512]
     ,
+        // Re-sync from the actual switch every wake: at startup the switch is
+        // created pressed (display shows enabled) but IGet inside the same
+        // script run can return 0 before ZBrush registers the item, which
+        // left the plugin inactive until the user toggled it by hand.
+        [VarSet,nlrEnabled,[IGet,"ZPlugin:No Left Click Rotation:Enable"]]
         [VarSet,nlrStateBits,[Var,nlrEnabled]]
         [If,[IGet,Transform:Edit],
             [VarAdd,nlrStateBits,2]
@@ -92,9 +109,13 @@
 ]
 
 [RoutineDef,NLRStartSleep,
+    // Mask includes 256 (Startup): when ZBrush auto-loads this plugin at
+    // startup, timer wakes may not be dispatched until startup finishes, so
+    // the Startup event is what starts the loop. The timer (1) covers manual
+    // reloads after ZBrush is already running.
     [Sleep,0.005,
         [RoutineCall,NLRWake],
-        1+2+4+8+64+128+512,
+        1+2+4+8+64+128+256+512,
         nlrEvent,
         nlrWindow
     ]
@@ -125,16 +146,22 @@
 // value of Init cannot be used for control flow. The DLL logs its own
 // initialization steps; here we only need the DLL file to be present.
 [FileExecute,[Var,nlrDll],Init]
+[FileExecute,[Var,nlrDll],Trace,"init: after Init"]
 [If,[FileExists,[FileNameResolvePath,"NoLeftClickRotation2022Data/NoLeftClickRotation2022.dll"]],
+    [FileExecute,[Var,nlrDll],Trace,"init: file ok"]
     [If,[MemGetSize,nlrMem] == 0,
         [MemCreate,nlrMem,16,0]
     ]
+    [FileExecute,[Var,nlrDll],Trace,"init: mem ok"]
     [VarSet,nlrEnabled,[IGet,"ZPlugin:No Left Click Rotation:Enable"]]
+    [FileExecute,[Var,nlrDll],Trace,[StrMerge,"init: en=",[Var,nlrEnabled]]]
     [VarSet,nlrDelay,[IGet,"ZPlugin:No Left Click Rotation:Sculpt Start Delay"]]
     [FileExecute,[Var,nlrDll],SetEnabled,,[Var,nlrEnabled]]
     [FileExecute,[Var,nlrDll],SetDelay,,[Var,nlrDelay]]
+    [FileExecute,[Var,nlrDll],Trace,"init: starting sleep"]
     [RoutineCall,NLRStartSleep]
 ,
+    [FileExecute,[Var,nlrDll],Trace,"init: FILE MISSING"]
     [MessageOK,"NoLeftClickRotation2022.dll not found in ZPlugs64."]
 ]
 

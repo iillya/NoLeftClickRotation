@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <commctrl.h>
+#include <mmsystem.h>
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -7,13 +8,16 @@
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
+#include <cstdio>
 
 namespace {
 
 constexpr UINT_PTR kSubclassId = 0x4E4C5232;
 constexpr UINT_PTR kClassifyTimer = 0x4E4C5233;
 constexpr UINT_PTR kStartTimer = 0x4E4C5234;
-constexpr UINT kClassifyMs = 20;
+constexpr UINT_PTR kPokeTimer = 0x4E4C5235;
+constexpr UINT kClassifyMs = 5;
+constexpr UINT kPokeMs = 50;
 constexpr int kCanvasWindowId = 1004;
 
 enum class Gesture : int {
@@ -45,8 +49,22 @@ std::atomic<ULONGLONG> g_rightRelockUntil{0};
 std::atomic<bool> g_hoverReady{false};
 std::atomic<double> g_hoverMat{0.0};
 std::atomic<ULONGLONG> g_lastHoverMs{0};
+std::atomic<bool> g_timerPeriodSet{false};
 POINT g_downPoint{};
 HCURSOR g_arrow = nullptr;
+
+void DbgLog(const char* msg) {
+    char path[MAX_PATH];
+    if (GetTempPathA(MAX_PATH, path)) {
+        std::strcat(path, "nlr2022_dbg.log");
+        FILE* stream = nullptr;
+        if (fopen_s(&stream, path, "a") == 0 && stream) {
+            fprintf(stream, "%llu %s\n",
+                    static_cast<unsigned long long>(GetTickCount64()), msg);
+            fclose(stream);
+        }
+    }
+}
 
 using SetCursorFn = HCURSOR(WINAPI*)(HCURSOR);
 SetCursorFn g_originalSetCursor = nullptr;
@@ -244,6 +262,24 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
             StartSculpt();
             return 0;
         }
+        if (wparam == kPokeTimer) {
+            // ZScript Sleep timer events are unreliable for startup-loaded
+            // plugins, so this Win32 timer nudges the ZScript wake loop with a
+            // synthetic mouse move (a discrete event the script scheduler does
+            // deliver). Only poke while idle to avoid disturbing gestures.
+            static ULONGLONG lastPokeLog = 0;
+            const ULONGLONG pokeNow = GetTickCount64();
+            if (pokeNow - lastPokeLog > 2000) {
+                lastPokeLog = pokeNow;
+                DbgLog("poke");
+            }
+            if (g_enabled.load() &&
+                !(GetAsyncKeyState(VK_LBUTTON) & 0x8000) &&
+                !(GetAsyncKeyState(VK_RBUTTON) & 0x8000)) {
+                SendMouse(hwnd, WM_MOUSEMOVE, Modifiers());
+            }
+            return 0;
+        }
     }
     if (message == WM_RBUTTONDOWN) {
         if (!g_enabled.load() || !g_editMode.load()) {
@@ -301,7 +337,14 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
         return result;
     }
     if (message == WM_MOUSEMOVE) {
-        if (g_gesture.load() == Gesture::LightBoxClickDone &&
+        const Gesture state = g_gesture.load();
+        // Probe window: the real down was passed and the synthetic UP was
+        // replayed; swallow movement so the 5ms cursor classification only
+        // sees the probe result, not ZBrush's reaction to the drag.
+        if (state == Gesture::Classify) {
+            return 0;
+        }
+        if (state == Gesture::LightBoxClickDone &&
             (GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
             POINT point{};
             GetCursorPos(&point);
@@ -341,10 +384,14 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
     }
     if (message == WM_NCDESTROY) {
         ResetGesture();
+        KillTimer(hwnd, kPokeTimer);
         g_rightDown.store(false);
         g_rightPending.store(false);
         g_rightUpPending.store(false);
         g_rightRelockUntil.store(0);
+        if (g_timerPeriodSet.exchange(false)) {
+            timeEndPeriod(1);
+        }
         RestoreCursorWatch();
         RemoveWindowSubclass(hwnd, SubclassProc, kSubclassId);
         g_zbrush = nullptr;
@@ -373,6 +420,11 @@ bool Install() {
         g_zbrush = nullptr;
         return false;
     }
+    SetTimer(g_zbrush, kPokeTimer, kPokeMs, nullptr);
+    // Make the 5ms probe timer actually fire at ~5ms instead of the default
+    // ~15.6ms Windows timer granularity.
+    timeBeginPeriod(1);
+    g_timerPeriodSet.store(true);
     // FileExecute may release its LoadLibrary reference after returning.
     // Pin this DLL because ZBrush now owns callbacks into it.
     HMODULE pinned = nullptr;
@@ -386,7 +438,10 @@ bool Install() {
 
 extern "C" __declspec(dllexport) int __cdecl Init(
     unsigned char*, double, void*, void*) {
-    return Install() ? 1 : 0;
+    DbgLog("Init: entered");
+    const int result = Install() ? 1 : 0;
+    DbgLog(result ? "Init: ok" : "Init: FAILED");
+    return result;
 }
 
 // number bit layout: bit0 enabled, bit1 Edit mode; integer Window ID is in text.
@@ -418,6 +473,24 @@ extern "C" __declspec(dllexport) int __cdecl NlrSync(
     } else if (WritableRange(memOut, 16)) {
         WriteSyncFloats(memOut, want, needPixol, needHover, right);
     }
+    static ULONGLONG lastSyncLog = 0;
+    const ULONGLONG now = GetTickCount64();
+    if (now - lastSyncLog > 1000) {
+        lastSyncLog = now;
+        char line[160];
+        snprintf(line, sizeof(line), "hb want=%d right=%d bits=%d win=%d",
+                 static_cast<int>(want), static_cast<int>(right),
+                 static_cast<int>(number), g_windowId.load());
+        DbgLog(line);
+    }
+    return 1;
+}
+
+// Temporary diagnostic: logs ZScript init steps verbatim (called only on
+// script-level events, never in a hot loop).
+extern "C" __declspec(dllexport) int __cdecl Trace(
+    unsigned char* text, double, void*, void*) {
+    DbgLog(text ? reinterpret_cast<char*>(text) : "(null)");
     return 1;
 }
 
@@ -477,8 +550,12 @@ extern "C" __declspec(dllexport) int __cdecl Shutdown(
     unsigned char*, double, void*, void*) {
     if (g_zbrush) {
         ResetGesture();
+        KillTimer(g_zbrush, kPokeTimer);
         RemoveWindowSubclass(g_zbrush, SubclassProc, kSubclassId);
         g_zbrush = nullptr;
+    }
+    if (g_timerPeriodSet.exchange(false)) {
+        timeEndPeriod(1);
     }
     RestoreCursorWatch();
     return 1;
