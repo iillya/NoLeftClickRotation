@@ -1,0 +1,79 @@
+// No Left Click Rotation - ZBrush 2022 bridge
+
+[VarDef,nlrDll,"NoLeftClickRotation2022Data\NoLeftClickRotation2022.dll"]
+[VarDef,nlrEnabled,1]
+[VarDef,nlrDelay,0]
+[VarDef,nlrEvent,0]
+[VarDef,nlrWindow,-1]
+[VarDef,nlrMat,0]
+[VarDef,nlrNeed,0]
+[VarDef,nlrStateBits,0]
+[VarDef,nlrLockWanted,0]
+
+[RoutineDef,NLRWake,
+    [VarSet,nlrStateBits,[Var,nlrEnabled]]
+    [If,[IGet,Transform:Edit],
+        [VarAdd,nlrStateBits,2]
+    ]
+
+    // The Sleep output supplies the interface/window under the pointer.
+    [FileExecute,[Var,nlrDll],UpdateState,[StrMerge,"",[Var,nlrWindow]],[Var,nlrStateBits]]
+
+    [VarSet,nlrLockWanted,[FileExecute,[Var,nlrDll],CameraLockWanted]]
+    [If,[IGet,Draw:Lock Camera] != [Var,nlrLockWanted],
+        [ISet,Draw:Lock Camera,[Var,nlrLockWanted]]
+    ]
+
+    [VarSet,nlrNeed,[FileExecute,[Var,nlrDll],NeedPixolPick]]
+    [If,[Var,nlrNeed],
+        [VarSet,nlrMat,[PixolPick,5,[MouseHPos],[MouseVPos]]]
+        [FileExecute,[Var,nlrDll],UpdatePixol,,[Var,nlrMat]]
+    ]
+
+    [SleepAgain,0.005,1+2+4+8+64+128]
+]
+
+[RoutineDef,NLRStartSleep,
+    [Sleep,0.005,
+        [RoutineCall,NLRWake],
+        1+2+4+8+64+128,
+        nlrEvent,
+        nlrWindow
+    ]
+]
+
+[ISubPalette,"ZPlugin:No Left Click Rotation:V2022"]
+
+[ISwitch,"ZPlugin:No Left Click Rotation:V2022:Enable",1,
+    "Enable the ZBrush 2022 compatibility bridge.",
+    [VarSet,nlrEnabled,1]
+    [FileExecute,[Var,nlrDll],SetEnabled,,1]
+,
+    [VarSet,nlrEnabled,0]
+    [FileExecute,[Var,nlrDll],SetEnabled,,0]
+    [ISet,Draw:Lock Camera,0]
+]
+
+[ISlider,"ZPlugin:No Left Click Rotation:V2022:Sculpt Start Delay",0,1,0,10,
+    "Delay in milliseconds before the bridged sculpt stroke starts.",
+    [VarSet,nlrDelay,[IGet,"ZPlugin:No Left Click Rotation:V2022:Sculpt Start Delay"]]
+    [FileExecute,[Var,nlrDll],SetDelay,,[Var,nlrDelay]]
+]
+
+[IButton,"ZPlugin:No Left Click Rotation:V2022:Restart Bridge",
+    "Restart the DLL bridge and event-driven PixolPick watcher.",
+    [If,[FileExecute,[Var,nlrDll],Init],
+        [FileExecute,[Var,nlrDll],SetEnabled,,[Var,nlrEnabled]]
+        [FileExecute,[Var,nlrDll],SetDelay,,[Var,nlrDelay]]
+        [RoutineCall,NLRStartSleep]
+    ,
+        [MessageOK,"NoLeftClickRotation2022.dll could not be initialized."]
+    ]
+]
+
+// Initialize automatically when ZBrush loads the plugin.
+[If,[FileExecute,[Var,nlrDll],Init],
+    [FileExecute,[Var,nlrDll],SetEnabled,,1]
+    [FileExecute,[Var,nlrDll],SetDelay,,0]
+    [RoutineCall,NLRStartSleep]
+]
