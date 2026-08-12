@@ -151,3 +151,5 @@ ZBrush 2026 的用户插件目录通常位于：
 - LightBox 不是独立窗口，ZBrush也没有公开其持续打开状态，因此插件通过光标行为进行判断。
 - 起笔延迟为 0ms 时，Windows消息调度仍可能产生约 1ms 的实际等待。
 - 在其他 ZBrush 大版本中，LightBox 光标行为可能发生变化，需要单独验证。
+- 画布/界面判定依赖隐藏调试项 `Preferences:Utilities:View Window Id`（不在 commands.xml 中）。启动时插件会自检：若该路径不可用，将在 ZBrush 底部提示“仅相机锁定生效”（空白不旋转仍然有效，但空白拖入模型起笔与 LightBox 判定不会启用）。
+- 模型起笔判定使用空闲悬停时缓存的 `PixolPick mat`（约每 10ms 刷新一次），不再依赖按下瞬间的实时采样，避免按住时 mat 恒为 0 导致误走探测路径。
