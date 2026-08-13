@@ -1,3 +1,0 @@
-C:/Users/win10/Desktop/NoLeftClickRotation/source/build_hotkey_bridge/CMakeFiles/NoLeftClickRotation2022.dir
-C:/Users/win10/Desktop/NoLeftClickRotation/source/build_hotkey_bridge/CMakeFiles/ALL_BUILD.dir
-C:/Users/win10/Desktop/NoLeftClickRotation/source/build_hotkey_bridge/CMakeFiles/ZERO_CHECK.dir
