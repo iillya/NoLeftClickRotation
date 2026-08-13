@@ -631,12 +631,12 @@ def _setup_ui():
     zbc.add_subpalette(PALETTE, title_mode=0)
     zbc.add_switch(
         ENABLE_PATH, True,
-        " ",
+        "启用或禁用插件",
         _toggle, initially_disabled=False, width=150,
     )
     zbc.add_switch(
         CAM_LOCK_PATH, True,
-        " ",
+        "控制相机锁定与右键旋转",
         _toggle_cam_lock, initially_disabled=False, width=150,
     )
     zbc.add_button(
