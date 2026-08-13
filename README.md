@@ -1,54 +1,66 @@
-# No Left Click Rotation
+# No Left Click Rotation（禁用左键导航）
 
-适用于 Windows 版 ZBrush 的鼠标交互插件。
+适用于 Windows 版 ZBrush 的鼠标交互插件，正式版 v1.0.0。
 
-插件用于阻止左键从模型外的空白画布开始拖动时旋转视图，同时保留正常的界面操作、模型雕刻、LightBox 点击与拖动，并允许左键从空白处拖入模型后直接开始雕刻。
+## 简介
 
-当前版本：正式版 v1.0.0（Python 版 + ZScript 版，两版逻辑一致，安装时二选一）。
+在 ZBrush 编辑模式下，左键从模型外的空白画布开始拖动会旋转视图。本插件锁定相机以阻止这一行为，同时保留正常的界面操作、模型雕刻、LightBox 点击与拖动，并支持左键从空白画布拖入模型后直接开始雕刻。
 
 ## 主要功能
 
-- Edit 模式下自动锁定相机，避免左键拖动画布造成视图旋转。
-- 右键按下时直接解除相机锁定，右键抬起 2ms 后恢复锁定。
-- ZBrush 普通界面上的左键操作完整放行。
+- 编辑模式下自动锁定相机，左键拖动空白画布不再旋转视图。
+- 右键按下时直接解除相机锁定，右键抬起 2ms 后自动恢复锁定。
+- 普通界面（按钮、菜单、滑块等）上的左键操作原样放行。
 - 直接在模型上按下左键时完整放行，正常雕刻。
-- 左键从空白画布开始拖动，进入模型后自动补发起笔并开始雕刻。
-- 支持 Alt + 左键，使用与普通左键相同的区域判断流程。
+- 左键从空白画布开始拖动，进入模型后自动补发起笔（固定 1ms 延时）。
+- 支持 Alt + 左键，与普通左键使用相同的区域判断流程。
+- Ctrl + 左键保留 ZBrush 原生画布手势，不进入空白画布桥接流程。
 - 保留 LightBox 的单击、双击和拖动操作。
-- 光标变为 Windows 系统光标（箭头、I 形、手形等）时按原生 UI 放行。
-- 起笔延时固定 1ms。
+- 光标变为 Windows 系统光标（箭头、I 形、手形等）时按原生界面放行。
 
-## 版本
+## 版本说明
+
+插件提供 Python 版与 ZScript 版两个实现，功能与逻辑一致，**安装时二选一，请勿同时安装**。
 
 ### Python 版
 
-- 文件：`NoLeftClickRotation.py`
-- 设置面板：`Zplugin > 禁用左键导航`（中文界面：启用、锁定相机、BiliBli、Github）
-- 使用 Win32 定时器驱动，不受 ZBrush 脚本调度中断影响。
+- 插件文件：`NoLeftClickRotation.py`
+- 设置面板：`Zplugin > 禁用左键导航`
+- 界面语言：中文（启用、锁定相机、BiliBli、Github）
+- 使用 Win32 定时器驱动，不受 ZBrush 脚本调度中断的影响。
 
 ### ZScript 版
 
-- 文件：`NoLeftClickRotation2022.txt` + `NoLeftClickRotation2022Data/NoLeftClickRotation2022.dll`
-- 设置面板：`Zplugin > No Left Click Rotation`（Enable、Camera Lock、Reset Sleep、BiliBli、Github）
-- 内置 Sleep 心跳与 F12 watchdog，脚本循环中断时自动恢复。
+- 插件文件：`NoLeftClickRotation2022.txt` 与 `NoLeftClickRotation2022Data/NoLeftClickRotation2022.dll`
+- 设置面板：`Zplugin > No Left Click Rotation`
+- 界面语言：英文（Enable、Camera Lock、Reset Sleep、BiliBli、Github）
+- 内置 Sleep 心跳与 F12 看门狗，脚本循环中断时自动恢复。
 
-两版请勿同时安装，避免互相干扰。
+## 安装方法
 
-## 安装
+1. 完全关闭 ZBrush。
+2. 将所选版本的插件文件复制到当前 ZBrush 版本的用户插件目录：
 
-完全关闭 ZBrush，将所选版本的插件文件复制到当前 ZBrush 版本的用户插件目录：
+   `%APPDATA%\Maxon\Maxon ZBrush 2026_*\ZStartup\ZPlugs64\`
 
-    %APPDATA%\Maxon\Maxon ZBrush 2026_*\ZStartup\ZPlugs64\
+   - Python 版：复制 `NoLeftClickRotation.py`。
+   - ZScript 版：复制 `NoLeftClickRotation2022.txt` 与整个 `NoLeftClickRotation2022Data` 文件夹。
 
-重新启动 ZBrush 后打开 `Zplugin > No Left Click Rotation`，确认「启用 / Enable」已开启。
+3. 重新启动 ZBrush。
+4. 打开对应的设置面板，确认「启用 / Enable」已开启。
 
-## 卸载
+## 卸载方法
 
-关闭 ZBrush 后，删除上述目录中的插件文件（Python 版删除 `.py`，ZScript 版删除 `.txt`、`.zsc` 和 `Data` 目录），重新启动 ZBrush。
+1. 完全关闭 ZBrush。
+2. 删除上述插件目录中的插件文件：
+   - Python 版：删除 `NoLeftClickRotation.py`。
+   - ZScript 版：删除 `NoLeftClickRotation2022.txt`、`NoLeftClickRotation2022.zsc` 与 `NoLeftClickRotation2022Data` 文件夹。
+3. 重新启动 ZBrush。
 
 ## 已知限制
 
-- LightBox 不是独立窗口，插件通过光标行为判断 LightBox 区域。
-- 空白拖入模型起笔依赖 `PixolPick` 的材质值 `mat`；若光标确实在可雕刻模型表面仍无法起笔，请确认处于 Edit 模式。
-- 画布/界面判定依赖隐藏调试项 `Preferences:Utilities:View Window Id`；该路径不可用时仅相机锁定生效。
+- LightBox 不是独立窗口，ZBrush 也没有公开其持续打开状态，插件通过光标行为进行判断。
+- 空白拖入模型的起笔判定依赖 `PixolPick` 的材质值 `mat`；若光标确实位于可雕刻表面仍无法起笔，请确认处于编辑模式。
+- 画布与界面判定依赖隐藏调试项 `Preferences:Utilities:View Window Id`；该路径不可用时，仅相机锁定生效（空白拖入起笔与 LightBox 判定不会启用）。
 - 在其他 ZBrush 大版本中，LightBox 光标行为可能发生变化，需要单独验证。
+- 起笔延时固定为 1ms，不受用户设置影响。
