@@ -636,7 +636,7 @@ def _setup_ui():
     )
     zbc.add_switch(
         CAM_LOCK_PATH, True,
-        "控制相机锁定",
+        "启用相机锁定",
         _toggle_cam_lock, initially_disabled=False, width=150,
     )
     zbc.add_button(
