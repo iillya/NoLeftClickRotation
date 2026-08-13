@@ -134,7 +134,7 @@
 [ISubPalette,"ZPlugin:No Left Click Rotation"]
 
 [ISwitch,"ZPlugin:No Left Click Rotation:Enable",1,
-    "",
+    " ",
     [VarSet,nlcrEnabled,1]
     [VarSet,nlcrLockPrev,-1]
     [FileExecute,[Var,nlcrDll],SetEnabled,,1]
@@ -149,7 +149,7 @@
 ,0,0.5,0]
 
 [ISwitch,"ZPlugin:No Left Click Rotation:Camera Lock",1,
-    "",
+    " ",
     [VarSet,nlcrCamLock,1]
     [VarSet,nlcrLockPrev,-1]
     [FileExecute,[Var,nlcrDll],SetCameraLock,,1]
