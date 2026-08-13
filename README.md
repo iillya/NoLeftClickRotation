@@ -31,7 +31,7 @@
 
 ### ZScript 版
 
-- 插件文件：`NoLeftClickRotation2022.txt` 与 `NoLeftClickRotation2022Data/NoLeftClickRotation2022.dll`
+- 插件文件：`NoLeftClickRotation.txt` 与 `NoLeftClickRotationData/NoLeftClickRotation.dll`
 - 设置面板：`Zplugin > No Left Click Rotation`
 - 界面语言：英文（Enable、Camera Lock、Reset Sleep、BiliBli、Github）
 - 内置 Sleep 心跳与 F12 看门狗，脚本循环中断时自动恢复。
@@ -44,7 +44,7 @@
    `%APPDATA%\Maxon\Maxon ZBrush 2026_*\ZStartup\ZPlugs64\`
 
    - Python 版：复制 `NoLeftClickRotation.py`。
-   - ZScript 版：复制 `NoLeftClickRotation2022.txt` 与整个 `NoLeftClickRotation2022Data` 文件夹。
+   - ZScript 版：复制 `NoLeftClickRotation.txt` 与整个 `NoLeftClickRotationData` 文件夹。
 
 3. 重新启动 ZBrush。
 4. 打开对应的设置面板，确认「启用 / Enable」已开启。
@@ -54,7 +54,7 @@
 1. 完全关闭 ZBrush。
 2. 删除上述插件目录中的插件文件：
    - Python 版：删除 `NoLeftClickRotation.py`。
-   - ZScript 版：删除 `NoLeftClickRotation2022.txt`、`NoLeftClickRotation2022.zsc` 与 `NoLeftClickRotation2022Data` 文件夹。
+   - ZScript 版：删除 `NoLeftClickRotation.txt`、`NoLeftClickRotation.zsc` 与 `NoLeftClickRotationData` 文件夹。
 3. 重新启动 ZBrush。
 
 ## 已知限制

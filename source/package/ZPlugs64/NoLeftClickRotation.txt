@@ -1,7 +1,7 @@
 // No Left Click Rotation - ZBrush 2026 (ZScript bridge)
 
 [VarDef,nlcrDll,""]
-[VarSet,nlcrDll,[FileNameResolvePath,"NoLeftClickRotation2022Data/NoLeftClickRotation2022.dll"]]
+[VarSet,nlcrDll,[FileNameResolvePath,"NoLeftClickRotationData/NoLeftClickRotation.dll"]]
 [VarDef,nlcrEnabled,1]
 [VarDef,nlcrCamLock,1]
 [VarDef,nlcrEvent,0]
@@ -188,7 +188,7 @@
 // value of Init cannot be used for control flow. The DLL logs its own
 // initialization steps; here we only need the DLL file to be present.
 [FileExecute,[Var,nlcrDll],Init]
-[If,[FileExists,[FileNameResolvePath,"NoLeftClickRotation2022Data/NoLeftClickRotation2022.dll"]],
+[If,[FileExists,[FileNameResolvePath,"NoLeftClickRotationData/NoLeftClickRotation.dll"]],
     [If,[MemGetSize,nlcrMem] == 0,
         [MemCreate,nlcrMem,16,0]
     ]
@@ -198,7 +198,7 @@
     [FileExecute,[Var,nlcrDll],SetCameraLock,,[Var,nlcrCamLock]]
     [RoutineCall,NLCRStartSleep]
 ,
-    [MessageOK,"NoLeftClickRotation2022.dll not found in ZPlugs64."]
+    [MessageOK,"NoLeftClickRotation.dll not found in ZPlugs64."]
 ]
 
 // Keep ZScript-generated interface items enabled when other plugins load.
