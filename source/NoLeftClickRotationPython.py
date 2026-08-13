@@ -21,13 +21,12 @@ WM_MBUTTONDOWN = 0x0207
 WM_MBUTTONUP = 0x0208
 WM_CAPTURECHANGED = 0x0215
 WM_NCDESTROY = 0x0082
-SM_CXDRAG = 68
-SM_CYDRAG = 69
 
 MK_LBUTTON = 0x0001
 MK_SHIFT = 0x0004
 MK_CONTROL = 0x0008
 MK_MBUTTON = 0x0010
+MK_RBUTTON = 0x0002
 VK_LBUTTON = 0x01
 VK_RBUTTON = 0x02
 VK_SHIFT = 0x10
@@ -39,9 +38,13 @@ EDIT_PATH = "Transform:Edit"
 LOCK_CAMERA_PATH = "Draw:Lock Camera"
 
 PALETTE = "Zplugin:No Left Click Rotation"
+# Legacy subpalette path from older installs; kept only so it can be closed
+# during setup, the new UI lives directly under PALETTE.
 BODY = PALETTE + ":V1"
-ENABLE_PATH = BODY + ":Enable"
-DELAY_PATH = BODY + ":Sculpt Start Delay"
+ENABLE_PATH = PALETTE + ":启用"
+CAM_LOCK_PATH = PALETTE + ":锁定相机"
+BILI_PATH = PALETTE + ":BiliBli"
+GITHUB_PATH = PALETTE + ":Github"
 
 IDLE = 0
 UI_PASS = 1
@@ -51,18 +54,34 @@ LIGHTBOX_PASS = 4
 WAIT_MODEL = 5
 START_PENDING = 6
 SCULPTING = 7
-LIGHTBOX_CLICK_DONE = 8
 
 POLL_TIMER = 0x4E4C5631
 CLASSIFY_TIMER = 0x4E4C5632
 START_TIMER = 0x4E4C5633
-CAMERA_TIMER = 0x4E4C5634
-SUBCLASS_ID = 0x4E4C5631
+SUBCLASS_ID = 0x4E4C4352
 POLL_MS = 5
-CLASSIFY_MS = 20
+CLASSIFY_MS = 5
+START_DELAY_MS = 1
 RIGHT_RELOCK_MS = 2
-DELAY_MIN_MS = 0
-DELAY_MAX_MS = 10
+
+# Numeric resource IDs of the standard Windows system cursors. The IDC_*
+# macros expand to pointer-typed values, so plain integers are used here.
+SYSTEM_CURSOR_IDS = (
+    32512,  # IDC_ARROW
+    32513,  # IDC_IBEAM
+    32514,  # IDC_WAIT
+    32515,  # IDC_CROSS
+    32516,  # IDC_UPARROW
+    32642,  # IDC_SIZENWSE
+    32643,  # IDC_SIZENESW
+    32644,  # IDC_SIZEWE
+    32645,  # IDC_SIZENS
+    32646,  # IDC_SIZEALL
+    32648,  # IDC_NO
+    32649,  # IDC_HAND
+    32650,  # IDC_APPSTARTING
+    32651,  # IDC_HELP
+)
 
 LRESULT = ctypes.c_ssize_t
 WPARAM = ctypes.c_size_t
@@ -84,7 +103,6 @@ user32.LoadCursorW.restype = wintypes.HANDLE
 user32.LoadCursorW.argtypes = [wintypes.HINSTANCE, ctypes.c_void_p]
 user32.GetCursorPos.argtypes = [ctypes.POINTER(wintypes.POINT)]
 user32.ScreenToClient.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
-user32.GetSystemMetrics.argtypes = [ctypes.c_int]
 user32.EnumWindows.argtypes = [EnumProc, wintypes.LPARAM]
 user32.GetClassNameW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
 user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND,
@@ -109,37 +127,25 @@ kernel32.VirtualProtect.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
 
 _hwnd = 0
 _enabled = True
+_camera_lock = True
 _state = IDLE
 _injecting = False
-_arrow_seen = False
-_system_arrow = 0
-_setcursor_slot = 0
-_setcursor_address = 0
-_setcursor_original = None
-_setcursor_callback = None
-_right_down = False
+_system_cursor_seen = False
+_system_cursors = []
+_down_cursor = 0
+_set_cursor_slot = 0
+_set_cursor_address = 0
+_set_cursor_original = None
+_set_cursor_callback = None
 _right_relock_at = 0.0
-_probe_point = (0, 0)
-_physical_left_held = False
 _hover_mat = None
+_hover_ready = False
 _hover_mat_at = 0.0
 _installed = False
 _lock_state = None
 _lock_assert_at = 0.0
 _edit_cache = None
 _edit_cache_at = 0.0
-
-LOG = os.path.join(os.environ.get("TEMP", os.path.dirname(__file__)),
-                   "nlr_v1.log")
-
-
-def _log(line):
-    try:
-        with open(LOG, "a", encoding="utf-8") as stream:
-            stream.write("%s %s\n" % (time.strftime("%H:%M:%S"), line))
-    except Exception:
-        pass
-
 
 def _key(vkey):
     return bool(user32.GetAsyncKeyState(vkey) & 0x8000)
@@ -195,14 +201,6 @@ def _mat():
         return 0.0
 
 
-def _delay_ms():
-    try:
-        return max(DELAY_MIN_MS, min(
-            DELAY_MAX_MS, int(round(float(zbc.get(DELAY_PATH))))))
-    except Exception:
-        return DELAY_MIN_MS
-
-
 def _lparam(hwnd):
     x, y = _client_point(hwnd)
     return ((y & 0xffff) << 16) | (x & 0xffff)
@@ -247,7 +245,7 @@ def _write_pointer(slot, value):
     return True
 
 
-def _find_setcursor_slot():
+def _find_set_cursor_slot():
     module = int(kernel32.GetModuleHandleW(None) or 0)
     header = ctypes.string_at(module, 0x1000)
     pe = struct.unpack_from("<I", header, 0x3C)[0]
@@ -277,34 +275,44 @@ def _find_setcursor_slot():
     return 0
 
 
+def _is_system_cursor(cursor):
+    return cursor in _system_cursors
+
+
 def _install_cursor_watch():
-    global _setcursor_slot, _setcursor_address, _setcursor_original
-    global _setcursor_callback, _system_arrow, _arrow_seen
-    _setcursor_slot = _find_setcursor_slot()
-    if not _setcursor_slot:
+    global _set_cursor_slot, _set_cursor_address, _set_cursor_original
+    global _set_cursor_callback, _system_cursors, _system_cursor_seen
+    _set_cursor_slot = _find_set_cursor_slot()
+    if not _set_cursor_slot:
         return False
-    _setcursor_address = ctypes.c_uint64.from_address(_setcursor_slot).value
-    _setcursor_original = SetCursorProc(_setcursor_address)
-    _system_arrow = int(user32.LoadCursorW(None, ctypes.c_void_p(32512)) or 0)
+    _set_cursor_address = ctypes.c_uint64.from_address(_set_cursor_slot).value
+    _set_cursor_original = SetCursorProc(_set_cursor_address)
+    _system_cursors = [
+        int(user32.LoadCursorW(None, ctypes.c_void_p(cursor_id)) or 0)
+        for cursor_id in SYSTEM_CURSOR_IDS
+    ]
 
     @SetCursorProc
     def callback(cursor):
-        global _arrow_seen
-        if _state == CLASSIFY and int(cursor or 0) == _system_arrow:
-            _arrow_seen = True
-        return _setcursor_original(cursor)
+        global _system_cursor_seen
+        # Any Windows system cursor (arrow, I-beam, hand, resize, ...) means
+        # ZBrush handed the cursor back to the OS, i.e. we are over LightBox
+        # or some native UI surface rather than the sculpting canvas.
+        if _state == CLASSIFY and _is_system_cursor(int(cursor or 0)):
+            _system_cursor_seen = True
+        return _set_cursor_original(cursor)
 
-    _setcursor_callback = callback
+    _set_cursor_callback = callback
     return _write_pointer(
-        _setcursor_slot, ctypes.cast(callback, ctypes.c_void_p).value)
+        _set_cursor_slot, ctypes.cast(callback, ctypes.c_void_p).value)
 
 
 def _restore_cursor_watch():
-    if _setcursor_slot and _setcursor_address:
-        _write_pointer(_setcursor_slot, _setcursor_address)
+    if _set_cursor_slot and _set_cursor_address:
+        _write_pointer(_set_cursor_slot, _set_cursor_address)
 
 
-def _camera_lock(value):
+def _lock_camera(value):
     _set_switch(LOCK_CAMERA_PATH, value)
 
 
@@ -319,38 +327,40 @@ def _edit_mode_cached():
 
 def _sync_camera():
     global _lock_state, _lock_assert_at
-    if not _enabled:
-        want = False
-    elif not _edit_mode_cached():
-        want = False
-    elif _right_down or _key(VK_RBUTTON):
-        want = False
-    elif time.perf_counter() < _right_relock_at:
-        want = False
-    else:
-        want = True
+    # want = None means "leave the camera switch alone": this applies whenever
+    # the plugin is disabled or the camera lock feature is off, so a disabled
+    # plugin never touches the camera (all features off).
+    if not (_enabled and _camera_lock):
+        return
+    right_held = _key(VK_RBUTTON)
+    relock_grace = time.perf_counter() < _right_relock_at
+    want = _edit_mode_cached() and not right_held and not relock_grace
     now = time.perf_counter()
     if want != _lock_state or now >= _lock_assert_at:
-        _camera_lock(want)
+        _lock_camera(want)
         _lock_state = want
         _lock_assert_at = now + 0.2
 
 
 def _sample_hover():
-    global _hover_mat, _hover_mat_at
-    if not (_enabled and _edit_mode_cached()) or _state != IDLE or _key(VK_LBUTTON):
+    global _hover_mat, _hover_mat_at, _hover_ready
+    if not (_enabled and _edit_mode_cached()):
+        return
+    if _state != IDLE or _key(VK_LBUTTON):
+        return
+    if _window_id() != CANVAS_WINDOW_ID:
         return
     now = time.perf_counter()
     if now - _hover_mat_at < 0.01:
         return
     _hover_mat = _mat()
     _hover_mat_at = now
+    _hover_ready = True
 
 
 def _clear_timers(hwnd):
     user32.KillTimer(hwnd, CLASSIFY_TIMER)
     user32.KillTimer(hwnd, START_TIMER)
-    user32.KillTimer(hwnd, CAMERA_TIMER)
 
 
 def _reset(hwnd):
@@ -375,16 +385,24 @@ def _finish_classify(hwnd):
     user32.KillTimer(hwnd, CLASSIFY_TIMER)
     if _state != CLASSIFY:
         return
-    arrow = _arrow_seen or int(user32.GetCursor() or 0) == _system_arrow
-    if arrow:
-        held = _physical_left_held and _key(VK_LBUTTON)
-        if held:
-            # The probe DOWN+UP already produced exactly one LightBox click.
-            # Wait for actual drag distance before replaying DOWN.
-            _state = LIGHTBOX_CLICK_DONE
+    system_cursor = (
+        _system_cursor_seen
+        or _is_system_cursor(_down_cursor)
+        or _is_system_cursor(int(user32.GetCursor() or 0))
+    )
+    if system_cursor:
+        if _key(VK_LBUTTON):
+            # The real down is still active in ZBrush: keep it, let moves flow
+            # so click/drag behave naturally (no click-before-drag side
+            # effect). The real up completes the gesture.
+            _state = LIGHTBOX_PASS
         else:
+            # Quick click: the real up already passed through during Classify.
             _state = IDLE
         return
+    # Blank canvas: end the real press with a synthetic up, then enter the
+    # middle-button wait (the press must not stay active on empty canvas).
+    _send(hwnd, WM_LBUTTONUP, _mods())
     _begin_wait(hwnd)
 
 
@@ -400,8 +418,7 @@ def _poll_model(hwnd):
         return
     _send(hwnd, WM_MBUTTONUP, _mods())
     _state = START_PENDING
-    delay = _delay_ms()
-    user32.SetTimer(hwnd, START_TIMER, max(1, delay), None)
+    user32.SetTimer(hwnd, START_TIMER, START_DELAY_MS, None)
 
 
 def _start_sculpt(hwnd):
@@ -418,8 +435,7 @@ def _start_sculpt(hwnd):
 
 
 def _begin_left(hwnd, msg, wparam, lparam):
-    global _state, _arrow_seen, _probe_point, _physical_left_held
-    _physical_left_held = True
+    global _state, _system_cursor_seen, _down_cursor
     if not _active():
         _state = IDLE
         return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
@@ -427,7 +443,7 @@ def _begin_left(hwnd, msg, wparam, lparam):
     if wid != CANVAS_WINDOW_ID:
         _state = UI_PASS
         return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-    if (_hover_mat if _hover_mat is not None else _mat()) != 0.0:
+    if _hover_ready and _hover_mat != 0.0:
         _state = MODEL_PASS
         return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
     # Ctrl keeps its native canvas gesture. Alt+left follows the same
@@ -436,19 +452,21 @@ def _begin_left(hwnd, msg, wparam, lparam):
         _state = UI_PASS
         return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
 
-    # Ambiguous LightBox/blank-canvas point: pass the real down, immediately
-    # finish it with synthetic UP, then classify from the resulting cursor.
-    result = comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-    _probe_point = _client_point(hwnd)
-    _arrow_seen = False
+    # Ambiguous LightBox/blank-canvas point: pass the real down but keep it
+    # active; swallow moves while classifying (so ZBrush cannot arm its
+    # background-rotate gesture). The synthetic UP is deferred to the
+    # classification result: LightBox keeps the press (natural click/drag),
+    # blank canvas ends it before the middle-button wait.
+    _down_cursor = int(user32.GetCursor() or 0)
+    _system_cursor_seen = False
     _state = CLASSIFY
-    _send(hwnd, WM_LBUTTONUP, _mods())
+    result = comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
     user32.SetTimer(hwnd, CLASSIFY_TIMER, CLASSIFY_MS, None)
     return result
 
 
 def _handle(hwnd, msg, wparam, lparam):
-    global _state, _right_down, _right_relock_at, _physical_left_held
+    global _state, _right_relock_at
     global _hwnd, _lock_state, _hover_mat
     if _injecting:
         return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
@@ -466,61 +484,48 @@ def _handle(hwnd, msg, wparam, lparam):
         if timer == START_TIMER:
             _start_sculpt(hwnd)
             return 0
-        if timer == CAMERA_TIMER:
-            user32.KillTimer(hwnd, CAMERA_TIMER)
-            _sync_camera()
-            return 0
 
     if msg == WM_RBUTTONDOWN:
-        _right_down = True
+        if not (_enabled and _camera_lock and _edit_mode()):
+            return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
+        # Right press unlocks the camera directly and is then passed through
+        # unchanged, so ZBrush starts the rotate gesture right away.
         _right_relock_at = 0.0
-        user32.KillTimer(hwnd, CAMERA_TIMER)
-        if _enabled and _edit_mode():
-            _camera_lock(False)
+        _lock_camera(False)
         return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
 
     if msg == WM_RBUTTONUP:
-        _right_down = False
+        if not (_enabled and _camera_lock and _edit_mode()):
+            return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
+        # Relock the camera 2ms after the right button is released.
         _right_relock_at = time.perf_counter() + RIGHT_RELOCK_MS / 1000.0
-        user32.SetTimer(hwnd, CAMERA_TIMER, RIGHT_RELOCK_MS, None)
         return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
 
     if msg == WM_LBUTTONDOWN:
         return _begin_left(hwnd, msg, wparam, lparam)
 
-    # Movement is always passed through. Camera lock prevents blank rotation.
     if msg == WM_MOUSEMOVE:
-        if _state == LIGHTBOX_CLICK_DONE and _key(VK_LBUTTON):
-            x, y = _client_point(hwnd)
-            dx = abs(x - _probe_point[0])
-            dy = abs(y - _probe_point[1])
-            threshold_x = max(1, int(user32.GetSystemMetrics(SM_CXDRAG)))
-            threshold_y = max(1, int(user32.GetSystemMetrics(SM_CYDRAG)))
-            if dx >= threshold_x or dy >= threshold_y:
-                _send(hwnd, WM_LBUTTONDOWN, _mods() | MK_LBUTTON)
-                _send(hwnd, WM_MOUSEMOVE, _mods() | MK_LBUTTON)
-                _state = LIGHTBOX_PASS
-                return 0
+        # Swallow movement only while the probe classifies (5ms). After the
+        # decision every state passes moves through.
+        if _state == CLASSIFY:
             return 0
-        _poll_model(hwnd)
         return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
 
     if msg == WM_LBUTTONUP:
-        _physical_left_held = False
         previous = _state
         if previous == CLASSIFY:
-            # The probe already delivered UP. Classification will replay a
-            # complete click only if this was LightBox.
-            return 0
-        if previous == LIGHTBOX_CLICK_DONE:
-            # Synthetic probe UP already completed this single click.
+            # The real down is still active; the real up completes the click.
+            # No replay needed for quick clicks.
+            user32.KillTimer(hwnd, CLASSIFY_TIMER)
             _state = IDLE
-            return 0
-        if previous in (WAIT_MODEL, START_PENDING):
-            _reset(hwnd)
             return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-        if previous in (UI_PASS, MODEL_PASS, LIGHTBOX_PASS, SCULPTING):
-            _state = IDLE
+        if previous in (WAIT_MODEL, START_PENDING):
+            # The probe already ended the press with a synthetic UP, so ZBrush
+            # is not holding a left down here; swallow the physical UP instead
+            # of delivering an orphan button-up.
+            _reset(hwnd)
+            return 0
+        _state = IDLE
         return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
 
     if msg in (WM_CANCELMODE, WM_CAPTURECHANGED):
@@ -533,7 +538,7 @@ def _handle(hwnd, msg, wparam, lparam):
         user32.KillTimer(hwnd, POLL_TIMER)
         _restore_cursor_watch()
         comctl32.RemoveWindowSubclass(hwnd, _subclass, SUBCLASS_ID)
-        _camera_lock(False)
+        _lock_camera(False)
         _hwnd = 0
         _lock_state = None
         _hover_mat = None
@@ -566,22 +571,52 @@ def _find(hwnd, unused):
 
 def _toggle(sender, value):
     del sender
-    global _enabled, _right_down, _right_relock_at, _hover_mat, _lock_state
+    global _enabled, _right_relock_at, _hover_mat, _hover_ready, _lock_state
     _enabled = bool(value)
     if _hwnd:
         _reset(_hwnd)
     if not _enabled:
-        _right_down = False
         _right_relock_at = 0.0
         _hover_mat = None
+        _hover_ready = False
         _lock_state = None
-        _camera_lock(False)
+        _lock_camera(False)
     else:
         _sync_camera()
 
 
-def _delay_changed(sender, value):
-    del sender, value
+def _toggle_cam_lock(sender, value):
+    del sender
+    global _camera_lock, _right_relock_at, _lock_state
+    _camera_lock = bool(value)
+    if _hwnd:
+        _reset(_hwnd)
+    if not _camera_lock:
+        # Camera lock off: abort any in-flight right-button handling, unlock
+        # once, then never touch the camera switch again. Right button is
+        # passed through untouched; left button is still handled normally.
+        _right_relock_at = 0.0
+        _lock_state = None
+        _lock_camera(False)
+    else:
+        _sync_camera()
+
+
+def _open_url(url):
+    try:
+        os.startfile(url)
+    except Exception:
+        pass
+
+
+def _open_bili(sender):
+    del sender
+    _open_url("https://space.bilibili.com/281243426?spm_id_from=333.1007.0.0")
+
+
+def _open_github(sender):
+    del sender
+    _open_url("https://github.com/iillya/NoLeftClickRotation")
 
 
 def _setup_ui():
@@ -590,17 +625,23 @@ def _setup_ui():
     if zbc.exists(BODY):
         zbc.close(BODY)
     zbc.add_subpalette(PALETTE, title_mode=0)
-    zbc.add_subpalette(BODY, title_mode=2)
     zbc.add_switch(
         ENABLE_PATH, True,
-        "Enable No Left Click Rotation V1. Disabling unlocks the camera.",
-        _toggle, initially_disabled=False, width=0.0,
+        "",
+        _toggle, initially_disabled=False, width=150,
     )
-    zbc.add_slider(
-        DELAY_PATH, float(DELAY_MIN_MS), 1,
-        float(DELAY_MIN_MS), float(DELAY_MAX_MS),
-        "Delay in milliseconds between ending the middle wait and starting sculpting.",
-        _delay_changed, initially_disabled=False, width=0.0,
+    zbc.add_switch(
+        CAM_LOCK_PATH, True,
+        "",
+        _toggle_cam_lock, initially_disabled=False, width=150,
+    )
+    zbc.add_button(
+        BILI_PATH, "By神说要凑数，点击跳转作者首页",
+        _open_bili, initially_disabled=False, width=150,
+    )
+    zbc.add_button(
+        GITHUB_PATH, "点击打开github仓库",
+        _open_github, initially_disabled=False, width=150,
     )
 
 
@@ -612,29 +653,25 @@ def main():
         _setup_ui()
         user32.EnumWindows(_find, 0)
         if not _hwnd:
-            _log("ERROR: ZBrush window not found")
-            _camera_lock(False)
+            _lock_camera(False)
             return
         wid_ok = _window_id_path_works()
         if not wid_ok:
-            _log("WARNING: View Window Id path unavailable; camera lock only")
-            zbc.set_notebar_text("NLC V1: View Window Id 不可用，仅相机锁定生效")
+            zbc.set_notebar_text(
+                "NLC V1: View Window Id unavailable; camera lock only")
         if not _install_cursor_watch():
-            _log("ERROR: SetCursor hook install failed")
-            _camera_lock(False)
+            _lock_camera(False)
             return
         if not comctl32.SetWindowSubclass(_hwnd, _subclass, SUBCLASS_ID, 0):
             _restore_cursor_watch()
-            _log("ERROR: window subclass install failed")
-            _camera_lock(False)
+            _lock_camera(False)
             return
         _installed = True
         user32.SetTimer(_hwnd, POLL_TIMER, POLL_MS, None)
         _sync_camera()
-        _log("V1 installed window_id_ok=%d" % int(wid_ok))
     except Exception as exc:
-        _log("FATAL %r" % (exc,))
-        _camera_lock(False)
+        del exc
+        _lock_camera(False)
 
 
 main()

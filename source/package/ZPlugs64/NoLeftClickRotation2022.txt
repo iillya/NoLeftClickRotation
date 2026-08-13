@@ -1,153 +1,209 @@
-// No Left Click Rotation - ZBrush 2022 bridge
+// No Left Click Rotation - ZBrush 2026 (ZScript bridge)
 
-[VarDef,nlrDll,""]
-[VarSet,nlrDll,[FileNameResolvePath,"NoLeftClickRotation2022Data/NoLeftClickRotation2022.dll"]]
-[VarDef,nlrEnabled,1]
-[VarDef,nlrDelay,0]
-[VarDef,nlrEvent,0]
-[VarDef,nlrWindow,-1]
-[VarDef,nlrMat,0]
-[VarDef,nlrNeed,0]
-[VarDef,nlrStateBits,0]
-[VarDef,nlrLock,-1]
-[VarDef,nlrLockPrev,-1]
-[VarDef,nlrLockTick,0]
-[VarDef,nlrHoverNeed,0]
-[VarDef,nlrRight,0]
+[VarDef,nlcrDll,""]
+[VarSet,nlcrDll,[FileNameResolvePath,"NoLeftClickRotation2022Data/NoLeftClickRotation2022.dll"]]
+[VarDef,nlcrEnabled,1]
+[VarDef,nlcrCamLock,1]
+[VarDef,nlcrEvent,0]
+[VarDef,nlcrWindow,-1]
+[VarDef,nlcrMat,0]
+[VarDef,nlcrNeed,0]
+[VarDef,nlcrStateBits,0]
+[VarDef,nlcrLock,-1]
+[VarDef,nlcrLockPrev,-1]
+[VarDef,nlcrLockTick,0]
+[VarDef,nlcrHoverNeed,0]
 
-[RoutineDef,NLRWake,
-    [If,[Var,nlrEvent] == 512,
-        // ZBrush is shutting down; let the DLL restore its hooks.
-        [ISet,"Draw:Lock Camera",0]
-        [FileExecute,[Var,nlrDll],Shutdown]
+[RoutineDef,NLCRWake,
+    [If,[Var,nlcrEvent] == 512,
+        // 512 fires whenever this script loses focus, not only when ZBrush
+        // exits (another plugin activation, a project load from LightBox, or
+        // the watchdog F12 re-parse). Unlock the camera if we own it, then
+        // keep the Sleep loop alive: without this re-arm every focus loss
+        // kills the loop and the plugin silently stops until an external wake
+        // succeeds. The next normal wake re-asserts the camera lock. Real
+        // cleanup happens in the DLL on WM_NCDESTROY (ZBrush window closing).
+        [If,[Var,nlcrCamLock],
+            [ISet,"Draw:Lock Camera",0]
+        ]
+        // Keep the heartbeat fresh while unfocused so the F12 watchdog never
+        // fires and starts a competing sleep loop.
+        [FileExecute,[Var,nlcrDll],NlcrSync,[StrMerge,"",[Var,nlcrWindow]],[Var,nlcrStateBits],nlcrMem,nlcrMem]
+        [SleepAgain,0.005,1+2+4+8+64+128+512]
     ,
-        [VarSet,nlrStateBits,[Var,nlrEnabled]]
+        // Re-sync from the actual switch every wake: at startup the switch is
+        // created pressed (display shows enabled) but IGet inside the same
+        // script run can return 0 before ZBrush registers the item, which
+        // leaves the plugin inactive until the user toggles it by hand.
+        [VarSet,nlcrEnabled,[IGet,"ZPlugin:No Left Click Rotation:Enable"]]
+        // Keep the Camera Lock switch greyed out whenever the plugin is
+        // disabled (re-applied after re-parses and the startup IGet quirk).
+        [If,[Var,nlcrEnabled],
+            [If,[IsEnabled,"ZPlugin:No Left Click Rotation:Camera Lock"] == 0,
+                [IEnable,"ZPlugin:No Left Click Rotation:Camera Lock"]
+            ]
+        ,
+            [If,[IsEnabled,"ZPlugin:No Left Click Rotation:Camera Lock"],
+                [IDisable,"ZPlugin:No Left Click Rotation:Camera Lock"]
+            ]
+        ]
+        [VarSet,nlcrStateBits,[Var,nlcrEnabled]]
         [If,[IGet,Transform:Edit],
-            [VarAdd,nlrStateBits,2]
+            [VarAdd,nlcrStateBits,2]
+        ]
+        [If,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock"],
+            [VarAdd,nlcrStateBits,4]
         ]
 
-        // Window ID source matches Python V1 (Preferences debug readback).
-        [VarSet,nlrWindow,[IGet,"Preferences:Utilities:View Window Id"]]
+        // Window ID source: Preferences debug readback.
+        [VarSet,nlcrWindow,[IGet,"Preferences:Utilities:View Window Id"]]
 
         // One reliable round-trip: the DLL writes lock/need flags into the
         // memory block (FileExecute return values are unreliable in 2026).
         // Per the plugin API the block pointer arrives in the "input" slot;
         // the DLL writes there and ZScript reads it back.
-        [FileExecute,[Var,nlrDll],NlrSync,[StrMerge,"",[Var,nlrWindow]],[Var,nlrStateBits],nlrMem,nlrMem]
-        [MemRead,nlrMem,nlrLock,0,0]
-        [MemRead,nlrMem,nlrNeed,0,4]
-        [MemRead,nlrMem,nlrHoverNeed,0,8]
-        [MemRead,nlrMem,nlrRight,0,12]
+        [FileExecute,[Var,nlcrDll],NlcrSync,[StrMerge,"",[Var,nlcrWindow]],[Var,nlcrStateBits],nlcrMem,nlcrMem]
+        [MemRead,nlcrMem,nlcrLock,0,0]
+        [MemRead,nlcrMem,nlcrNeed,0,4]
+        [MemRead,nlcrMem,nlcrHoverNeed,0,8]
 
         // Camera lock is a switch: press = locked, unpress = unlocked.
-        // Sync the desired state directly (change + periodic re-assert like
-        // Python V1) instead of gating on the button readback.
-        [If,[Var,nlrLock],
-            // Right button released: finish any queued release first, then
-            // keep the camera locked (periodic re-assert like Python V1).
-            [FileExecute,[Var,nlrDll],ReplayRightDown]
-            [If,[Var,nlrLock] != [Var,nlrLockPrev],
-                [ISet,"Draw:Lock Camera",1]
-                [VarSet,nlrLockPrev,1]
-                [VarSet,nlrLockTick,0]
-            ,
-                [VarAdd,nlrLockTick,1]
-                [If,[Var,nlrLockTick] >= 40,
+        // want = 1 lock, 0 unlock, -1 leave the camera alone (feature off).
+        // Sync the desired state directly (change + periodic re-assert)
+        // instead of gating on the button readback.
+        [If,[Var,nlcrLock] != -1,
+            [If,[Var,nlcrLock],
+                // Right button released: finish any queued release first, then
+                // keep the camera locked (periodic re-assert).
+                [FileExecute,[Var,nlcrDll],ReplayRightDown]
+                [If,[Var,nlcrLock] != [Var,nlcrLockPrev],
                     [ISet,"Draw:Lock Camera",1]
-                    [VarSet,nlrLockTick,0]
+                    [VarSet,nlcrLockPrev,1]
+                    [VarSet,nlcrLockTick,0]
+                ,
+                    [VarAdd,nlcrLockTick,1]
+                    [If,[Var,nlcrLockTick] >= 40,
+                        [ISet,"Draw:Lock Camera",1]
+                        [VarSet,nlcrLockTick,0]
+                    ]
                 ]
-            ]
-        ,
-            // Right button held: unlock the camera first, then replay the
-            // swallowed press so ZBrush starts the rotate gesture.
-            [If,[Var,nlrLock] != [Var,nlrLockPrev],
-                [ISet,"Draw:Lock Camera",0]
-                [VarSet,nlrLockPrev,0]
-                [VarSet,nlrLockTick,0]
             ,
-                [VarAdd,nlrLockTick,1]
-                [If,[Var,nlrLockTick] >= 40,
+                // Right button held: unlock the camera first, then replay the
+                // swallowed press so ZBrush starts the rotate gesture.
+                [If,[Var,nlcrLock] != [Var,nlcrLockPrev],
                     [ISet,"Draw:Lock Camera",0]
-                    [VarSet,nlrLockTick,0]
+                    [VarSet,nlcrLockPrev,0]
+                    [VarSet,nlcrLockTick,0]
+                ,
+                    [VarAdd,nlcrLockTick,1]
+                    [If,[Var,nlcrLockTick] >= 40,
+                        [ISet,"Draw:Lock Camera",0]
+                        [VarSet,nlcrLockTick,0]
+                    ]
                 ]
+                [FileExecute,[Var,nlcrDll],ReplayRightDown]
             ]
-            [FileExecute,[Var,nlrDll],ReplayRightDown]
         ]
 
-        [If,[Var,nlrNeed],
-            [VarSet,nlrMat,[PixolPick,5,[MouseHPos],[MouseVPos]]]
-            [FileExecute,[Var,nlrDll],UpdatePixol,,[Var,nlrMat]]
+        [If,[Var,nlcrNeed],
+            [VarSet,nlcrMat,[PixolPick,5,[MouseHPos],[MouseVPos]]]
+            [FileExecute,[Var,nlcrDll],UpdatePixol,,[Var,nlcrMat]]
         ]
 
         // Hover cache: sample the material while idle so a model press can be
         // passed through immediately without the probe delay. The DLL gates
         // this to the canvas and throttles it to avoid PixolPick overload.
-        [If,[Var,nlrHoverNeed],
-            [VarSet,nlrMat,[PixolPick,5,[MouseHPos],[MouseVPos]]]
-            [FileExecute,[Var,nlrDll],SetHoverMat,,[Var,nlrMat]]
+        [If,[Var,nlcrHoverNeed],
+            [VarSet,nlcrMat,[PixolPick,5,[MouseHPos],[MouseVPos]]]
+            [FileExecute,[Var,nlcrDll],SetHoverMat,,[Var,nlcrMat]]
         ]
 
         [SleepAgain,0.005,1+2+4+8+64+128+512]
     ]
 ]
 
-[RoutineDef,NLRStartSleep,
+[RoutineDef,NLCRStartSleep,
     [Sleep,0.005,
-        [RoutineCall,NLRWake],
+        [RoutineCall,NLCRWake],
         1+2+4+8+64+128+512,
-        nlrEvent,
-        nlrWindow
+        nlcrEvent,
+        nlcrWindow
     ]
 ]
 
 [ISubPalette,"ZPlugin:No Left Click Rotation"]
 
 [ISwitch,"ZPlugin:No Left Click Rotation:Enable",1,
-    "Enable the ZBrush 2022 compatibility bridge.",
-    [VarSet,nlrEnabled,1]
-    [FileExecute,[Var,nlrDll],SetEnabled,,1]
+    "",
+    [VarSet,nlcrEnabled,1]
+    [VarSet,nlcrLockPrev,-1]
+    [FileExecute,[Var,nlcrDll],SetEnabled,,1]
+    [IEnable,"ZPlugin:No Left Click Rotation:Camera Lock"]
 ,
-    [VarSet,nlrEnabled,0]
-    [FileExecute,[Var,nlrDll],SetEnabled,,0]
+    [VarSet,nlcrEnabled,0]
+    [FileExecute,[Var,nlcrDll],SetEnabled,,0]
+    [IDisable,"ZPlugin:No Left Click Rotation:Camera Lock"]
     [ISet,"Draw:Lock Camera",0]
-    [VarSet,nlrLockPrev,0]
-    [VarSet,nlrLockTick,0]
-,0,1,0]
+    [VarSet,nlcrLockPrev,0]
+    [VarSet,nlcrLockTick,0]
+,0,0.5,0]
 
-[ISlider,"ZPlugin:No Left Click Rotation:Sculpt Start Delay",0,1,0,10,
-    "Delay in milliseconds before the bridged sculpt stroke starts.",
-    [VarSet,nlrDelay,[IGet,"ZPlugin:No Left Click Rotation:Sculpt Start Delay"]]
-    [FileExecute,[Var,nlrDll],SetDelay,,[Var,nlrDelay]]
-,0,1,0]
+[ISwitch,"ZPlugin:No Left Click Rotation:Camera Lock",1,
+    "",
+    [VarSet,nlcrCamLock,1]
+    [VarSet,nlcrLockPrev,-1]
+    [FileExecute,[Var,nlcrDll],SetCameraLock,,1]
+,
+    [VarSet,nlcrCamLock,0]
+    [FileExecute,[Var,nlcrDll],SetCameraLock,,0]
+    [ISet,"Draw:Lock Camera",0]
+    [VarSet,nlcrLockPrev,0]
+    [VarSet,nlcrLockTick,0]
+,0,0.5,0]
 
-// Internal watchdog target. The DLL sends F12 only after the normal 5ms
-// Sleep heartbeat has been missing for 100ms. Starting a new Sleep here
-// restores the bridge without replacing its normal Sleep/SleepAgain loop.
-[IButton,"ZPlugin:No Left Click Rotation:Pixol Bridge",
-    "Internal Sleep watchdog wake target.",
-    [RoutineCall,NLRStartSleep]
-,0,1,0]
-[ISetHotkey,"ZPlugin:No Left Click Rotation:Pixol Bridge",91]
+// Manual watchdog reset. The DLL also sends F12 after the normal 5ms Sleep
+// heartbeat has been missing for 1s; pressing this button starts a new Sleep
+// loop immediately.
+[IButton,"ZPlugin:No Left Click Rotation:Reset Sleep",
+    "",
+    [VarSet,nlcrEvent,0]
+    [RoutineCall,NLCRStartSleep]
+,0,1.0,0]
+// 91 is ZBrush's hotkey code for F12 (function keys are VK - 0x20:
+// F1=80, F2=81, F3=82, F12=91). The DLL sends VK_F12 to wake this button.
+[ISetHotkey,"ZPlugin:No Left Click Rotation:Reset Sleep",91]
+
+[IButton,"ZPlugin:No Left Click Rotation:BiliBli",
+    "",
+    [FileExecute,[Var,nlcrDll],OpenUrl,"https://space.bilibili.com/281243426?spm_id_from=333.1007.0.0"]
+,0,0.5,0]
+
+[IButton,"ZPlugin:No Left Click Rotation:Github",
+    "",
+    [FileExecute,[Var,nlcrDll],OpenUrl,"https://github.com/iillya/NoLeftClickRotation"]
+,0,0.5,0]
 
 // Initialize automatically when ZBrush loads the plugin. Note: ZBrush 2026
 // does not reliably return the DLL's result from FileExecute, so the return
 // value of Init cannot be used for control flow. The DLL logs its own
 // initialization steps; here we only need the DLL file to be present.
-[FileExecute,[Var,nlrDll],Init]
+[FileExecute,[Var,nlcrDll],Init]
 [If,[FileExists,[FileNameResolvePath,"NoLeftClickRotation2022Data/NoLeftClickRotation2022.dll"]],
-    [If,[MemGetSize,nlrMem] == 0,
-        [MemCreate,nlrMem,16,0]
+    [If,[MemGetSize,nlcrMem] == 0,
+        [MemCreate,nlcrMem,16,0]
     ]
-    [VarSet,nlrEnabled,[IGet,"ZPlugin:No Left Click Rotation:Enable"]]
-    [VarSet,nlrDelay,[IGet,"ZPlugin:No Left Click Rotation:Sculpt Start Delay"]]
-    [FileExecute,[Var,nlrDll],SetEnabled,,[Var,nlrEnabled]]
-    [FileExecute,[Var,nlrDll],SetDelay,,[Var,nlrDelay]]
-    [RoutineCall,NLRStartSleep]
+    [VarSet,nlcrEnabled,[IGet,"ZPlugin:No Left Click Rotation:Enable"]]
+    [VarSet,nlcrCamLock,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock"]]
+    [FileExecute,[Var,nlcrDll],SetEnabled,,[Var,nlcrEnabled]]
+    [FileExecute,[Var,nlcrDll],SetCameraLock,,[Var,nlcrCamLock]]
+    [RoutineCall,NLCRStartSleep]
 ,
     [MessageOK,"NoLeftClickRotation2022.dll not found in ZPlugs64."]
 ]
 
 // Keep ZScript-generated interface items enabled when other plugins load.
 [IEnable,"ZPlugin:No Left Click Rotation:Enable"]
-[IEnable,"ZPlugin:No Left Click Rotation:Sculpt Start Delay"]
-[IEnable,"ZPlugin:No Left Click Rotation:Pixol Bridge"]
+[IEnable,"ZPlugin:No Left Click Rotation:Camera Lock"]
+[IEnable,"ZPlugin:No Left Click Rotation:Reset Sleep"]
+[IEnable,"ZPlugin:No Left Click Rotation:BiliBli"]
+[IEnable,"ZPlugin:No Left Click Rotation:Github"]

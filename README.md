@@ -4,152 +4,51 @@
 
 插件用于阻止左键从模型外的空白画布开始拖动时旋转视图，同时保留正常的界面操作、模型雕刻、LightBox 点击与拖动，并允许左键从空白处拖入模型后直接开始雕刻。
 
-当前开发版本：候选版 2（RC2，仅处理左键）
+当前版本：正式版 v1.0.0（Python 版 + ZScript 版，两版逻辑一致，安装时二选一）。
 
 ## 主要功能
 
 - Edit 模式下自动锁定相机，避免左键拖动画布造成视图旋转。
-- 右键按下或按住时临时解除相机锁定，保留正常的视图操作。
-- 右键松开 2ms 后恢复相机锁定。
-- ZBrush普通界面上的左键操作完整放行。
+- 右键按下时直接解除相机锁定，右键抬起 2ms 后恢复锁定。
+- ZBrush 普通界面上的左键操作完整放行。
 - 直接在模型上按下左键时完整放行，正常雕刻。
 - 左键从空白画布开始拖动，进入模型后自动补发起笔并开始雕刻。
 - 支持 Alt + 左键，使用与普通左键相同的区域判断流程。
 - 保留 LightBox 的单击、双击和拖动操作。
-- 可通过滑块调整拖入模型后的起笔延迟。
+- 光标变为 Windows 系统光标（箭头、I 形、手形等）时按原生 UI 放行。
+- 起笔延时固定 1ms。
 
-## 工作方式
+## 版本
 
-插件仅在 ZBrush 的 Edit 模式下处理左键。
+### Python 版
 
-左键按下时依次执行以下判断：
+- 文件：`NoLeftClickRotation.py`
+- 设置面板：`Zplugin > No Left Click Rotation`（中文界面：启用、锁定相机、BiliBli、Github）
+- 使用 Win32 定时器驱动，不受 ZBrush 脚本调度中断影响。
 
-1. 普通 UI
+### ZScript 版
 
-   如果光标位于按钮、菜单、滑块或其他普通 ZBrush 界面区域，插件不修改任何左键消息，整段操作直接交给 ZBrush。
+- 文件：`NoLeftClickRotation2022.txt` + `NoLeftClickRotation2022Data/NoLeftClickRotation2022.dll`
+- 设置面板：`Zplugin > No Left Click Rotation`（Enable、Camera Lock、Reset Sleep、BiliBli、Github）
+- 内置 Sleep 心跳与 F12 watchdog，脚本循环中断时自动恢复。
 
-2. 模型
-
-   如果光标位于模型表面，插件完整放行左键，ZBrush立即开始正常雕刻。模型判断只使用 `PixolPick` 的材质值 `mat`，不依赖法线或深度。
-
-3. LightBox 或空白画布
-
-   LightBox 的内容区域会被 ZBrush报告为画布，因此不能仅通过界面 ID 判断。插件会让真实左键按下先进入 ZBrush，随后补发一次左键抬起，并观察 ZBrush 产生的系统光标状态：
-
-   - 出现系统箭头：判定为 LightBox。
-   - 未出现系统箭头：判定为普通空白画布。
-
-4. 普通空白画布
-
-   插件把仍在按住的物理左键临时表示为中键状态，使 `PixolPick mat` 在按住期间仍可持续查询。鼠标移动消息不会被吞掉；相机锁定负责阻止视图旋转。
-
-   当光标进入模型且 `mat != 0` 时，插件结束中键状态，并根据设置的起笔延迟补发左键按下和移动，从当前位置开始雕刻。
-
-一次左键手势完成分类后，在物理左键松开前不会重复分类。
-
-## LightBox 操作
-
-插件对 LightBox 的点击和拖动分别处理：
-
-- 单击时，探测过程已经形成一次完整点击，因此不会再次补发点击。
-- 双击时，两次物理点击各自只产生一次 LightBox 点击，可正常双击打开项目。
-- 按住并移动超过 Windows 系统拖动阈值后，插件补发左键按下并进入拖动状态。
-- 进入拖动状态后，移动与最终抬起都交给 ZBrush。
-
-## 设置
-
-插件设置位于：
-
-`Zplugin > No Left Click Rotation > V1`
-
-### Enable
-
-启用或关闭插件。
-
-- 开启：Edit 模式下启用相机锁定和左键处理。
-- 关闭：停止处理鼠标，并解除相机锁定。
-
-### Sculpt Start Delay
-
-控制从空白画布拖入模型后，结束中键等待状态与补发雕刻起笔之间的间隔。
-
-- 默认值：0ms
-- 范围：0–10ms
-- 步进：1ms
-
-如果拖入模型后偶尔无法起笔，可逐步增加此值。建议从 1ms 开始测试，直到当前 ZBrush 和设备环境下能够稳定起笔。
+两版请勿同时安装，避免互相干扰。
 
 ## 安装
 
-1. 关闭 ZBrush。
-2. 将 `NoLeftClickRotation.py` 复制到当前 ZBrush 用户插件目录：
+完全关闭 ZBrush，将所选版本的插件文件复制到当前 ZBrush 版本的用户插件目录：
 
-   `ZStartup\ZPlugs64`
+    %APPDATA%\Maxon\Maxon ZBrush 2026_*\ZStartup\ZPlugs64\
 
-3. 启动 ZBrush。
-4. 打开 `Zplugin > No Left Click Rotation > V1`，确认 `Enable` 已开启。
-
-ZBrush 2026 的用户插件目录通常位于：
-
-`%APPDATA%\Maxon\Maxon ZBrush 2026_*\ZStartup\ZPlugs64`
-
-不同版本或安装方式的目录名称可能不同，请使用对应 ZBrush 版本的用户启动目录。
+重新启动 ZBrush 后打开 `Zplugin > No Left Click Rotation`，确认「启用 / Enable」已开启。
 
 ## 卸载
 
-1. 关闭 ZBrush。
-2. 从 `ZStartup\ZPlugs64` 删除 `NoLeftClickRotation.py`。
-3. 重新启动 ZBrush。
-
-如果只想临时停用，可在插件面板中关闭 `Enable`。关闭后相机锁定会解除。
-
-## 操作说明
-
-- 左键点击或拖动普通 UI：原样交给 ZBrush。
-- 左键直接按在模型上：正常雕刻。
-- 左键按在空白画布并移动：相机保持锁定，不发生左键视图旋转。
-- 左键从空白画布拖入模型：自动从进入模型的位置开始雕刻。
-- Alt + 左键：经过相同的区域判断，并保留 Alt 键状态。
-- Ctrl + 左键：保留 ZBrush 原生画布手势，不进入空白画布桥接流程。
-- 右键按住：临时解除相机锁定。
-- 右键松开：2ms 后恢复相机锁定。
-
-## 兼容性
-
-- 当前开发和测试环境：ZBrush 2026.1.1。
-- 插件使用 ZBrush Python API 和 Windows 输入/光标接口。
-- 模型判断不使用固定的 ZBrush 内存地址或 PixolPick 私有结构偏移。
-- LightBox 判断依赖 ZBrush 在 LightBox 抬起事件后切换到 Windows 系统箭头的行为。其他大版本需实际测试确认。
-
-## 故障排查
-
-### 插件没有出现在 Zplugin 中
-
-- 确认文件名为 `NoLeftClickRotation.py`。
-- 确认文件放在当前 ZBrush 版本实际使用的 `ZStartup\ZPlugs64` 目录。
-- 完全关闭并重新启动 ZBrush。
-
-### 空白处拖入模型后没有起笔
-
-- 确认当前处于 Edit 模式。
-- 将 `Sculpt Start Delay` 从 0ms 逐步提高到 1–10ms。
-- 确认光标确实进入可雕刻的模型表面。
-
-### LightBox 单击、双击或拖动异常
-
-- 确认只安装了一份 `NoLeftClickRotation.py`。
-- 关闭其他会修改鼠标消息或光标的 ZBrush 插件后重新测试。
-- 完全重启 ZBrush，避免旧版本插件仍留在当前进程中。
-
-### 右键无法旋转视图
-
-- 确认右键保持按住；插件只在右键按下期间解除相机锁定。
-- 检查 ZBrush 自身的右键导航设置。
+关闭 ZBrush 后，删除上述目录中的插件文件（Python 版删除 `.py`，ZScript 版删除 `.txt`、`.zsc` 和 `Data` 目录），重新启动 ZBrush。
 
 ## 已知限制
 
-- LightBox 不是独立窗口，ZBrush也没有公开其持续打开状态，因此插件通过光标行为进行判断。
-- 起笔延迟为 0ms 时，Windows消息调度仍可能产生约 1ms 的实际等待。
+- LightBox 不是独立窗口，插件通过光标行为判断 LightBox 区域。
+- 空白拖入模型起笔依赖 `PixolPick` 的材质值 `mat`；若光标确实在可雕刻模型表面仍无法起笔，请确认处于 Edit 模式。
+- 画布/界面判定依赖隐藏调试项 `Preferences:Utilities:View Window Id`；该路径不可用时仅相机锁定生效。
 - 在其他 ZBrush 大版本中，LightBox 光标行为可能发生变化，需要单独验证。
-- 画布/界面判定依赖隐藏调试项 `Preferences:Utilities:View Window Id`（不在 commands.xml 中）。启动时插件会自检：若该路径不可用，将在 ZBrush 底部提示“仅相机锁定生效”（空白不旋转仍然有效，但空白拖入模型起笔与 LightBox 判定不会启用）。
-- 模型起笔判定使用空闲悬停时缓存的 `PixolPick mat`（约每 10ms 刷新一次），不再依赖按下瞬间的实时采样，避免按住时 mat 恒为 0 导致误走探测路径。

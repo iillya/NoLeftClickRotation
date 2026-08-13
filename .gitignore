@@ -1,0 +1,4 @@
+# Build artifacts
+source/build/
+source/__pycache__/
+*.pyc
