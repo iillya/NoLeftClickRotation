@@ -13,7 +13,6 @@ namespace {
 constexpr UINT_PTR kSubclassId = 0x4E4C5232;
 constexpr UINT_PTR kClassifyTimer = 0x4E4C5233;
 constexpr UINT_PTR kStartTimer = 0x4E4C5234;
-constexpr UINT_PTR kSleepWatchdogTimer = 0x4E4C5235;
 constexpr UINT kClassifyMs = 20;
 constexpr UINT kSleepWatchdogPollMs = 25;
 constexpr ULONGLONG kSleepHeartbeatTimeoutMs = 100;
@@ -51,6 +50,7 @@ std::atomic<double> g_hoverMat{0.0};
 std::atomic<ULONGLONG> g_lastHoverMs{0};
 std::atomic<ULONGLONG> g_lastSleepHeartbeatMs{0};
 std::atomic<ULONGLONG> g_lastF12WakeMs{0};
+HANDLE g_sleepWatchdogTimer = nullptr;
 POINT g_downPoint{};
 HCURSOR g_arrow = nullptr;
 
@@ -91,6 +91,37 @@ void SendF12Wake() {
     input[1] = input[0];
     input[1].ki.dwFlags = KEYEVENTF_KEYUP;
     SendInput(2, input, sizeof(INPUT));
+}
+
+VOID CALLBACK SleepWatchdogCallback(PVOID, BOOLEAN) {
+    const ULONGLONG now = GetTickCount64();
+    const ULONGLONG heartbeat = g_lastSleepHeartbeatMs.load();
+    const ULONGLONG lastWake = g_lastF12WakeMs.load();
+    const bool modifiersHeld =
+        (GetAsyncKeyState(VK_SHIFT) & 0x8000) ||
+        (GetAsyncKeyState(VK_CONTROL) & 0x8000) ||
+        (GetAsyncKeyState(VK_MENU) & 0x8000);
+    if (g_enabled.load() && heartbeat != 0 &&
+        now - heartbeat > kSleepHeartbeatTimeoutMs &&
+        now - lastWake >= kF12RetryMs &&
+        ZBrushIsForeground() && !modifiersHeld) {
+        g_lastF12WakeMs.store(now);
+        SendF12Wake();
+    }
+}
+
+void StopSleepWatchdog() {
+    const HANDLE timer = g_sleepWatchdogTimer;
+    g_sleepWatchdogTimer = nullptr;
+    if (timer) DeleteTimerQueueTimer(nullptr, timer, INVALID_HANDLE_VALUE);
+}
+
+bool StartSleepWatchdog() {
+    StopSleepWatchdog();
+    return CreateTimerQueueTimer(
+               &g_sleepWatchdogTimer, nullptr, SleepWatchdogCallback, nullptr,
+               kSleepWatchdogPollMs, kSleepWatchdogPollMs,
+               WT_EXECUTEDEFAULT) != FALSE;
 }
 
 bool WritePointer(void** slot, void* value) {
@@ -254,23 +285,6 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
         return DefSubclassProc(hwnd, message, wparam, lparam);
     }
     if (message == WM_TIMER) {
-        if (wparam == kSleepWatchdogTimer) {
-            const ULONGLONG now = GetTickCount64();
-            const ULONGLONG heartbeat = g_lastSleepHeartbeatMs.load();
-            const ULONGLONG lastWake = g_lastF12WakeMs.load();
-            const bool modifiersHeld =
-                (GetAsyncKeyState(VK_SHIFT) & 0x8000) ||
-                (GetAsyncKeyState(VK_CONTROL) & 0x8000) ||
-                (GetAsyncKeyState(VK_MENU) & 0x8000);
-            if (g_enabled.load() && heartbeat != 0 &&
-                now - heartbeat > kSleepHeartbeatTimeoutMs &&
-                now - lastWake >= kF12RetryMs &&
-                ZBrushIsForeground() && !modifiersHeld) {
-                g_lastF12WakeMs.store(now);
-                SendF12Wake();
-            }
-            return 0;
-        }
         if (wparam == kClassifyTimer) {
             KillTimer(hwnd, kClassifyTimer);
             FinishClassification();
@@ -377,7 +391,7 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
         return DefSubclassProc(hwnd, message, wparam, lparam);
     }
     if (message == WM_NCDESTROY) {
-        KillTimer(hwnd, kSleepWatchdogTimer);
+        StopSleepWatchdog();
         ResetGesture();
         g_rightDown.store(false);
         g_rightPending.store(false);
@@ -413,7 +427,12 @@ bool Install() {
     }
     g_lastSleepHeartbeatMs.store(GetTickCount64());
     g_lastF12WakeMs.store(0);
-    SetTimer(g_zbrush, kSleepWatchdogTimer, kSleepWatchdogPollMs, nullptr);
+    if (!StartSleepWatchdog()) {
+        RemoveWindowSubclass(g_zbrush, SubclassProc, kSubclassId);
+        RestoreCursorWatch();
+        g_zbrush = nullptr;
+        return false;
+    }
     // FileExecute may release its LoadLibrary reference after returning.
     // Pin this DLL because ZBrush now owns callbacks into it.
     HMODULE pinned = nullptr;
@@ -518,6 +537,7 @@ extern "C" __declspec(dllexport) int __cdecl SetHoverMat(
 extern "C" __declspec(dllexport) int __cdecl Shutdown(
     unsigned char*, double, void*, void*) {
     if (g_zbrush) {
+        StopSleepWatchdog();
         ResetGesture();
         RemoveWindowSubclass(g_zbrush, SubclassProc, kSubclassId);
         g_zbrush = nullptr;
