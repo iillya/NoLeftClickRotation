@@ -23,7 +23,7 @@
 ### Python 版
 
 - 文件：`NoLeftClickRotation.py`
-- 设置面板：`Zplugin > No Left Click Rotation`（中文界面：启用、锁定相机、BiliBli、Github）
+- 设置面板：`Zplugin > 禁用左键导航`（中文界面：启用、锁定相机、BiliBli、Github）
 - 使用 Win32 定时器驱动，不受 ZBrush 脚本调度中断影响。
 
 ### ZScript 版

@@ -37,10 +37,12 @@ WINDOW_ID_PATH = "Preferences:Utilities:View Window Id"
 EDIT_PATH = "Transform:Edit"
 LOCK_CAMERA_PATH = "Draw:Lock Camera"
 
-PALETTE = "Zplugin:No Left Click Rotation"
-# Legacy subpalette path from older installs; kept only so it can be closed
-# during setup, the new UI lives directly under PALETTE.
-BODY = PALETTE + ":V1"
+PALETTE = "Zplugin:禁用左键导航"
+# Legacy paths from older installs (English palette and its "V1" subpalette);
+# kept only so they can be closed during setup, the new UI lives directly
+# under PALETTE.
+LEGACY_PALETTE = "Zplugin:No Left Click Rotation"
+BODY = LEGACY_PALETTE + ":V1"
 ENABLE_PATH = PALETTE + ":启用"
 CAM_LOCK_PATH = PALETTE + ":锁定相机"
 BILI_PATH = PALETTE + ":BiliBli"
@@ -622,6 +624,8 @@ def _open_github(sender):
 def _setup_ui():
     if zbc.exists(PALETTE):
         zbc.close(PALETTE)
+    if zbc.exists(LEGACY_PALETTE):
+        zbc.close(LEGACY_PALETTE)
     if zbc.exists(BODY):
         zbc.close(BODY)
     zbc.add_subpalette(PALETTE, title_mode=0)
