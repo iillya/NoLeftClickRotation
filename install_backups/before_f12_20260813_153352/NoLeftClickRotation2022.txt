@@ -1,0 +1,103 @@
+// No Left Click Rotation - ZBrush 2022+ on-demand bridge
+
+[VarDef,nlrDll,""]
+[VarSet,nlrDll,[FileNameResolvePath,"NoLeftClickRotation2022Data/NoLeftClickRotation2022.dll"]]
+[VarDef,nlrEnabled,1]
+[VarDef,nlrDelay,0]
+[VarDef,nlrWindow,-1]
+[VarDef,nlrMat,0]
+[VarDef,nlrStateBits,0]
+[VarDef,nlrEditValue,0]
+[VarDef,nlrEditFlags,0]
+[VarDef,nlrEditDetected,0]
+[VarDef,nlrBridgeHotkey,0]
+[VarDef,nlrLock,0]
+[VarDef,nlrRight,0]
+
+// This routine is called only through the private hotkey. It replaces the old
+// persistent Sleep loop: synchronize state/camera, replay a pending right
+// press after unlocking, then return one PixolPick material sample to the DLL.
+[RoutineDef,NLRBridge,
+    // ZBrush may reload StartupHotkeys after startup plugins and clear a
+    // runtime binding. Re-assert the private key whenever the bridge runs.
+    [ISetHotkey,"ZPlugin:No Left Click Rotation:Pixol Bridge",88]
+    [VarSet,nlrStateBits,[Var,nlrEnabled]]
+    [VarSet,nlrEditValue,[IGet,Transform:Edit]]
+    [VarSet,nlrEditFlags,[IGetFlags,Transform:Edit]]
+    [VarSet,nlrEditDetected,0]
+    [If,[Var,nlrEditValue] == 1,
+        [VarSet,nlrEditDetected,1]
+    ]
+    // Official ZScript guidance: Edit is pressed when its flags are >= 8.
+    [If,[Var,nlrEditFlags] >= 8,
+        [VarSet,nlrEditDetected,1]
+    ]
+    [If,[Var,nlrEditDetected],
+        [VarAdd,nlrStateBits,2]
+    ]
+    [VarSet,nlrWindow,[IGet,"Preferences:Utilities:View Window Id"]]
+    [VarSet,nlrBridgeHotkey,[IGetHotkey,"ZPlugin:No Left Click Rotation:Pixol Bridge"]]
+
+    [FileExecute,[Var,nlrDll],NlrSync,[StrMerge,"",[Var,nlrWindow],",",[Var,nlrEditValue],",",[Var,nlrEditFlags],",",[Var,nlrBridgeHotkey]],[Var,nlrStateBits],nlrMem,nlrMem]
+    [MemRead,nlrMem,nlrLock,0,0]
+    [MemRead,nlrMem,nlrRight,0,4]
+
+    [If,[Var,nlrLock],
+        // Deliver a queued right-button release before restoring the lock.
+        [FileExecute,[Var,nlrDll],ReplayRightDown]
+        [ISet,"Draw:Lock Camera",1]
+    ,
+        // Unlock first, then deliver a queued right-button press.
+        [ISet,"Draw:Lock Camera",0]
+        [FileExecute,[Var,nlrDll],ReplayRightDown]
+    ]
+
+    [VarSet,nlrMat,[PixolPick,5,[MouseHPos],[MouseVPos]]]
+    [FileExecute,[Var,nlrDll],HotkeyPixol,,[Var,nlrMat]]
+    [ISetHotkey,"ZPlugin:No Left Click Rotation:Pixol Bridge",88]
+]
+
+[ISubPalette,"ZPlugin:No Left Click Rotation"]
+
+[ISwitch,"ZPlugin:No Left Click Rotation:Enable",1,
+    "Enable the ZBrush compatibility bridge.",
+    [VarSet,nlrEnabled,1]
+    [FileExecute,[Var,nlrDll],SetEnabled,,1]
+,
+    [VarSet,nlrEnabled,0]
+    [FileExecute,[Var,nlrDll],SetEnabled,,0]
+    [ISet,"Draw:Lock Camera",0]
+,0,1,0]
+
+[ISlider,"ZPlugin:No Left Click Rotation:Sculpt Start Delay",0,1,0,10,
+    "Delay in milliseconds before the bridged sculpt stroke starts.",
+    [VarSet,nlrDelay,[IGet,"ZPlugin:No Left Click Rotation:Sculpt Start Delay"]]
+    [FileExecute,[Var,nlrDll],SetDelay,,[Var,nlrDelay]]
+,0,1,0]
+
+// Internal on-demand bridge. F9 uses ZBrush's unmodified key code 88.
+[IButton,"ZPlugin:No Left Click Rotation:Pixol Bridge",
+    "Internal PixolPick and camera-state bridge.",
+    [RoutineCall,NLRBridge]
+,0,1,0]
+[ISetHotkey,"ZPlugin:No Left Click Rotation:Pixol Bridge",88]
+
+[FileExecute,[Var,nlrDll],Init]
+[If,[FileExists,[FileNameResolvePath,"NoLeftClickRotation2022Data/NoLeftClickRotation2022.dll"]],
+    [If,[MemGetSize,nlrMem] == 0,
+        [MemCreate,nlrMem,8,0]
+    ]
+    // The switch is created pressed. IGet may briefly report zero while the
+    // startup script is still registering its new interface items.
+    [VarSet,nlrEnabled,1]
+    [VarSet,nlrDelay,[IGet,"ZPlugin:No Left Click Rotation:Sculpt Start Delay"]]
+    [FileExecute,[Var,nlrDll],SetEnabled,,[Var,nlrEnabled]]
+    [FileExecute,[Var,nlrDll],SetDelay,,[Var,nlrDelay]]
+    [ISetHotkey,"ZPlugin:No Left Click Rotation:Pixol Bridge",88]
+,
+    [MessageOK,"NoLeftClickRotation2022.dll not found in ZPlugs64."]
+]
+
+[IEnable,"ZPlugin:No Left Click Rotation:Enable"]
+[IEnable,"ZPlugin:No Left Click Rotation:Sculpt Start Delay"]
+[IEnable,"ZPlugin:No Left Click Rotation:Pixol Bridge"]

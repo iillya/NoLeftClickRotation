@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\win10\Desktop\NoLeftClickRotation\source\NoLeftClickRotationZscript.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\win10\Desktop\NoLeftClickRotation\source\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{E973C975-6662-3AF3-9DBA-754014826C20}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
