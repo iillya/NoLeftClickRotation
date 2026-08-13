@@ -644,7 +644,7 @@ def _setup_ui():
         _open_bili, initially_disabled=False, width=150,
     )
     zbc.add_button(
-        GITHUB_PATH, "点击打开Github仓库",
+        GITHUB_PATH, "点击打开github仓库",
         _open_github, initially_disabled=False, width=150,
     )
 
