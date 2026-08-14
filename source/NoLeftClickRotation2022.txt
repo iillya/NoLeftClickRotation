@@ -1,0 +1,180 @@
+// No Left Click Rotation - ZBrush 2022 compatible bridge
+
+[VarDef,nlcrDll,""]
+[VarSet,nlcrDll,[FileNameResolvePath,"NoLeftClickRotationData/NoLeftClickRotation.dll"]]
+[VarDef,nlcrEnabled,1]
+[VarDef,nlcrCamLock,0]
+[VarDef,nlcrEvent,0]
+[VarDef,nlcrWindow,-1]
+[VarDef,nlcrMat,0]
+[VarDef,nlcrNeed,0]
+[VarDef,nlcrStateBits,0]
+[VarDef,nlcrLock,-1]
+[VarDef,nlcrLockPrev,-1]
+[VarDef,nlcrLockTick,0]
+[VarDef,nlcrHoverNeed,0]
+
+[RoutineDef,NLCRWake,
+    [If,[Var,nlcrEvent] == 512,
+        // Focus loss (project load, another plugin, ...). Unlock the camera
+        // if we own it, then keep the Sleep loop alive; the next normal wake
+        // re-asserts the lock.
+        [VarSet,nlcrEvent,0]
+        [VarSet,nlcrLockPrev,-1]
+        [If,[Var,nlcrCamLock],
+            [ISet,"Draw:Lock Camera",0]
+        ]
+        [SleepAgain,0.005,1+2+4+8+64+128+512]
+    ,
+        [VarSet,nlcrEnabled,[IGet,"ZPlugin:No Left Click Rotation:Enable"]]
+        [VarSet,nlcrCamLock,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock Only"]]
+        [VarSet,nlcrStateBits,[Var,nlcrEnabled]]
+        [If,[IGet,Transform:Edit],
+            [VarAdd,nlcrStateBits,2]
+        ]
+        [If,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock Only"],
+            [VarAdd,nlcrStateBits,4]
+        ]
+
+        [VarSet,nlcrWindow,[IGet,"Preferences:Utilities:View Window Id"]]
+
+        // ZBrush 2022 channel: push the state in, read the wanted camera
+        // lock and the hover/pixol sampling flags back from the return values.
+        [FileExecute,[Var,nlcrDll],SyncState,[StrMerge,"",[Var,nlcrWindow]],[Var,nlcrStateBits]]
+        [VarSet,nlcrLock,[FileExecute,[Var,nlcrDll],GetCameraLock]]
+        [VarSet,nlcrHoverNeed,[FileExecute,[Var,nlcrDll],GetNeedHover]]
+        [VarSet,nlcrNeed,[FileExecute,[Var,nlcrDll],GetNeedPixol]]
+
+        // Camera lock is a switch: press = locked, unpress = unlocked.
+        // want = 1 lock, 0 unlock, -1 leave the camera alone (feature off).
+        [If,[Var,nlcrLock] != -1,
+            [If,[Var,nlcrLock],
+                // Right button released: finish any queued release first, then
+                // keep the camera locked (periodic re-assert).
+                [FileExecute,[Var,nlcrDll],ReplayRightDown]
+                [If,[Var,nlcrLock] != [Var,nlcrLockPrev],
+                    [ISet,"Draw:Lock Camera",1]
+                    [VarSet,nlcrLockPrev,1]
+                    [VarSet,nlcrLockTick,0]
+                ,
+                    [VarAdd,nlcrLockTick,1]
+                    [If,[Var,nlcrLockTick] >= 40,
+                        [ISet,"Draw:Lock Camera",1]
+                        [VarSet,nlcrLockTick,0]
+                    ]
+                ]
+            ,
+                // Right button held: unlock the camera first, then replay the
+                // swallowed press so ZBrush starts the rotate gesture.
+                [If,[Var,nlcrLock] != [Var,nlcrLockPrev],
+                    [ISet,"Draw:Lock Camera",0]
+                    [VarSet,nlcrLockPrev,0]
+                    [VarSet,nlcrLockTick,0]
+                ,
+                    [VarAdd,nlcrLockTick,1]
+                    [If,[Var,nlcrLockTick] >= 40,
+                        [ISet,"Draw:Lock Camera",0]
+                        [VarSet,nlcrLockTick,0]
+                    ]
+                ]
+                [FileExecute,[Var,nlcrDll],ReplayRightDown]
+            ]
+        ]
+
+        [If,[Var,nlcrEnabled],
+            [If,[IsEnabled,"ZPlugin:No Left Click Rotation:Camera Lock Only"] == 0,
+                [IEnable,"ZPlugin:No Left Click Rotation:Camera Lock Only"]
+            ]
+        ,
+            [If,[IsEnabled,"ZPlugin:No Left Click Rotation:Camera Lock Only"],
+                [IDisable,"ZPlugin:No Left Click Rotation:Camera Lock Only"]
+            ]
+        ]
+
+        [If,[Var,nlcrNeed],
+            [VarSet,nlcrMat,[PixolPick,5,[MouseHPos],[MouseVPos]]]
+            [FileExecute,[Var,nlcrDll],UpdatePixol,,[Var,nlcrMat]]
+        ]
+
+        [If,[Var,nlcrHoverNeed],
+            [VarSet,nlcrMat,[PixolPick,5,[MouseHPos],[MouseVPos]]]
+            [FileExecute,[Var,nlcrDll],SetHoverMat,,[Var,nlcrMat]]
+        ]
+
+        [SleepAgain,0.005,1+2+4+8+64+128+512]
+    ]
+]
+
+[RoutineDef,NLCRStartSleep,
+    [Sleep,0.005,
+        [RoutineCall,NLCRWake],
+        1+2+4+8+64+128+512,
+        nlcrEvent,
+        nlcrWindow
+    ]
+]
+
+[ISubPalette,"ZPlugin:No Left Click Rotation"]
+
+[ISwitch,"ZPlugin:No Left Click Rotation:Enable",1,
+    "Enable the plugin",
+    [VarSet,nlcrEnabled,1]
+    [VarSet,nlcrLockPrev,-1]
+    [FileExecute,[Var,nlcrDll],SetEnabled,,1]
+    [IEnable,"ZPlugin:No Left Click Rotation:Camera Lock Only"]
+,
+    [VarSet,nlcrEnabled,0]
+    [FileExecute,[Var,nlcrDll],SetEnabled,,0]
+    [IDisable,"ZPlugin:No Left Click Rotation:Camera Lock Only"]
+    [ISet,"Draw:Lock Camera",0]
+    [VarSet,nlcrLockPrev,0]
+    [VarSet,nlcrLockTick,0]
+,0,0.5,0]
+
+[ISwitch,"ZPlugin:No Left Click Rotation:Camera Lock Only",0,
+    "Locks the camera when enabled,right button unlocks. left button is not handled.",
+    [VarSet,nlcrCamLock,1]
+    [VarSet,nlcrLockPrev,-1]
+    [FileExecute,[Var,nlcrDll],SetCameraLock,,1]
+,
+    [VarSet,nlcrCamLock,0]
+    [FileExecute,[Var,nlcrDll],SetCameraLock,,0]
+    [ISet,"Draw:Lock Camera",0]
+    [VarSet,nlcrLockPrev,0]
+    [VarSet,nlcrLockTick,0]
+,0,0.5,0]
+
+[IButton,"ZPlugin:No Left Click Rotation:Reset Sleep",
+    "Restart the background bridge",
+    [RoutineCall,NLCRStartSleep]
+,0,1.0,0]
+// 91 is ZBrush's hotkey code for F12 (function keys are VK - 0x20:
+// F1=80, F2=81, F3=82, F12=91). The DLL sends VK_F12 to wake this button.
+[ISetHotkey,"ZPlugin:No Left Click Rotation:Reset Sleep",91]
+
+[IButton,"ZPlugin:No Left Click Rotation:BiliBli",
+    "Open the author's BiliBili page",
+    [FileExecute,[Var,nlcrDll],OpenUrl,"https://space.bilibili.com/281243426?spm_id_from=333.1007.0.0"]
+,0,0.5,0]
+
+[IButton,"ZPlugin:No Left Click Rotation:Github",
+    "Open the project on GitHub",
+    [FileExecute,[Var,nlcrDll],OpenUrl,"https://github.com/iillya/NoLeftClickRotation"]
+,0,0.5,0]
+
+[FileExecute,[Var,nlcrDll],Init]
+[If,[FileExists,[FileNameResolvePath,"NoLeftClickRotationData/NoLeftClickRotation.dll"]],
+    [VarSet,nlcrEnabled,[IGet,"ZPlugin:No Left Click Rotation:Enable"]]
+    [VarSet,nlcrCamLock,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock Only"]]
+    [FileExecute,[Var,nlcrDll],SetEnabled,,[Var,nlcrEnabled]]
+    [FileExecute,[Var,nlcrDll],SetCameraLock,,[Var,nlcrCamLock]]
+    [RoutineCall,NLCRStartSleep]
+,
+    [MessageOK,"NoLeftClickRotation.dll not found in ZPlugs64."]
+]
+
+[IEnable,"ZPlugin:No Left Click Rotation:Enable"]
+[IEnable,"ZPlugin:No Left Click Rotation:Camera Lock Only"]
+[IEnable,"ZPlugin:No Left Click Rotation:Reset Sleep"]
+[IEnable,"ZPlugin:No Left Click Rotation:BiliBli"]
+[IEnable,"ZPlugin:No Left Click Rotation:Github"]

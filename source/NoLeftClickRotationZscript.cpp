@@ -923,6 +923,47 @@ extern "C" __declspec(dllexport) int __cdecl SetEnabled(
     return g_enabled.load() ? 1 : 0;
 }
 
+// ZBrush 2022 compatibility channel: the ZScript wake loop pushes its current
+// switch/edit/window state via the plain FileExecute text+number arguments
+// (no memory-block round trip, which is a 2026-only extension) and then reads
+// the desired camera state back from the return value.
+extern "C" __declspec(dllexport) int __cdecl SyncState(
+    unsigned char* text, double number, void*, void*) {
+    const bool previousEdit = g_editMode.load();
+    const int previousWindow = g_windowId.load();
+    const bool editMode = (static_cast<int>(number) & 2) != 0;
+    const int windowId = text ? std::atoi(reinterpret_cast<char*>(text)) : -1;
+    g_enabled.store((static_cast<int>(number) & 1) != 0);
+    g_editMode.store(editMode);
+    g_cameraLock.store((static_cast<int>(number) & 4) != 0);
+    g_windowId.store(windowId);
+    if (previousEdit != editMode || previousWindow != windowId) {
+        g_hoverReady.store(false, std::memory_order_release);
+        g_hoverSampleMs.store(0);
+    }
+    if (previousEdit && !editMode) ResetGesture();
+    if (!g_enabled.load()) ResetGesture();
+    return 1;
+}
+
+// Returns 1 = lock, 0 = unlock, -1 = leave the camera switch alone (plugin
+// disabled or the camera-lock-only feature is off).
+extern "C" __declspec(dllexport) int __cdecl GetCameraLock(
+    unsigned char*, double, void*, void*) {
+    if (!g_enabled.load() || !g_cameraLock.load()) return -1;
+    return WantLockNow() ? 1 : 0;
+}
+
+extern "C" __declspec(dllexport) int __cdecl GetNeedHover(
+    unsigned char*, double, void*, void*) {
+    return NeedHoverNow() ? 1 : 0;
+}
+
+extern "C" __declspec(dllexport) int __cdecl GetNeedPixol(
+    unsigned char*, double, void*, void*) {
+    return NeedPixolNow() ? 1 : 0;
+}
+
 BOOL APIENTRY DllMain(HINSTANCE module, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         g_module = module;
