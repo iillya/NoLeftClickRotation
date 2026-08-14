@@ -26,14 +26,14 @@
 
 - 插件文件：`NoLeftClickRotation.py`
 - 设置面板：`Zplugin > 禁用左键导航`
-- 界面语言：中文（启用、锁定相机、BiliBli、Github）
+- 界面语言：根据 Windows 系统界面语言自动选择简体中文或英文，其他语言回退英文；中英文控件提示与 ZScript 版一致。
 - 使用 Win32 定时器驱动，不受 ZBrush 脚本调度中断的影响。
 
 ### ZScript 版
 
 - 插件文件：`NoLeftClickRotation.txt` 与 `NoLeftClickRotationData/NoLeftClickRotation.dll`
-- 设置面板：`Zplugin > No Left Click Rotation`
-- 界面语言：英文（Enable、Camera Lock、Reset Sleep、BiliBli、Github）
+- 设置面板：中文为 `Zplugin > 禁用左键导航`，英文为 `Zplugin > No Left Click Rotation`
+- 界面语言：自动跟随 ZBrush 当前界面语言（ZBrush 默认跟随系统语言）；已提供简体中文与英文，其他语言回退英文；中英文控件提示与 Python 版一致。
 - 内置 Sleep 心跳与 F12 看门狗，脚本循环中断时自动恢复。
 
 ## 安装方法

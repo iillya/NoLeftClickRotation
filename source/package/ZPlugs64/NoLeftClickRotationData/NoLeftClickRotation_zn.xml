@@ -1,0 +1,25 @@
+<buttons>
+  <button path="ZPlugin:No Left Click Rotation">
+    <title text="No Left Click Rotation" trans="禁用左键导航"/>
+  </button>
+  <button path="ZPlugin:No Left Click Rotation:Enable">
+    <title text="Enable" trans="启用"/>
+    <info text="Enable the plugin" trans="启用插件"/>
+  </button>
+  <button path="ZPlugin:No Left Click Rotation:Camera Lock">
+    <title text="Camera Lock" trans="锁定相机"/>
+    <info text="Enable the camera lock" trans="启用相机锁定"/>
+  </button>
+  <button path="ZPlugin:No Left Click Rotation:Reset Sleep">
+    <title text="Reset Sleep" trans="重启桥接"/>
+    <info text="Restart the background bridge" trans="重新启动后台桥接"/>
+  </button>
+  <button path="ZPlugin:No Left Click Rotation:BiliBli">
+    <title text="BiliBli" trans="哔哩哔哩"/>
+    <info text="Open the author's BiliBili page" trans="By神说要凑数，点击打开作者的哔哩哔哩主页"/>
+  </button>
+  <button path="ZPlugin:No Left Click Rotation:Github">
+    <title text="Github" trans="GitHub"/>
+    <info text="Open the project on GitHub" trans="打开项目的 GitHub 页面"/>
+  </button>
+</buttons>

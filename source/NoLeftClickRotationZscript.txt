@@ -2,6 +2,21 @@
 
 [VarDef,nlcrDll,""]
 [VarSet,nlcrDll,[FileNameResolvePath,"NoLeftClickRotationData/NoLeftClickRotation.dll"]]
+[VarDef,nlcrZFileUtils,""]
+[VarDef,nlcrLocalizationXml,""]
+[If,[MemGetSize,nlcrLocalizationMem] > 0,
+    [MemDelete,nlcrLocalizationMem]
+]
+[MemCreate,nlcrLocalizationMem,1024,0]
+[FileExecute,[Var,nlcrDll],GetZFileUtilsPath,,,nlcrLocalizationMem,nlcrLocalizationMem]
+[MemReadString,nlcrLocalizationMem,nlcrZFileUtils]
+[MemDelete,nlcrLocalizationMem]
+[VarSet,nlcrLocalizationXml,[FileNameResolvePath,"NoLeftClickRotationData/NoLeftClickRotation_en.xml"]]
+[If,[FileExists,[Var,nlcrZFileUtils]],
+    [If,[FileExists,[Var,nlcrLocalizationXml]],
+        [FileExecute,[Var,nlcrZFileUtils],RegisterLocalizationFile,[Var,nlcrLocalizationXml]]
+    ]
+]
 [VarDef,nlcrEnabled,1]
 [VarDef,nlcrCamLock,1]
 [VarDef,nlcrEvent,0]
@@ -186,7 +201,7 @@
 [ISubPalette,"ZPlugin:No Left Click Rotation"]
 
 [ISwitch,"ZPlugin:No Left Click Rotation:Enable",1,
-    "Enable or disable the plugin",
+    "Enable the plugin",
     [VarSet,nlcrEnabled,1]
     [VarSet,nlcrLockPrev,-1]
     [FileExecute,[Var,nlcrDll],SetEnabled,,1]
@@ -201,7 +216,7 @@
 ,0,0.5,0]
 
 [ISwitch,"ZPlugin:No Left Click Rotation:Camera Lock",1,
-    "Control camera lock and right-button rotate",
+    "Enable the camera lock",
     [VarSet,nlcrCamLock,1]
     [VarSet,nlcrLockPrev,-1]
     [FileExecute,[Var,nlcrDll],SetCameraLock,,1]
@@ -217,7 +232,7 @@
 // heartbeat has been missing for 1s; pressing this button starts a new Sleep
 // loop immediately.
 [IButton,"ZPlugin:No Left Click Rotation:Reset Sleep",
-    "",
+    "Restart the background bridge",
     [RoutineCall,NLCRRestartBridge]
 ,0,1.0,0]
 // 91 is ZBrush's hotkey code for F12 (function keys are VK - 0x20:
@@ -225,12 +240,12 @@
 [ISetHotkey,"ZPlugin:No Left Click Rotation:Reset Sleep",91]
 
 [IButton,"ZPlugin:No Left Click Rotation:BiliBli",
-    "",
+    "Open the author's BiliBili page",
     [FileExecute,[Var,nlcrDll],OpenUrl,"https://space.bilibili.com/281243426?spm_id_from=333.1007.0.0"]
 ,0,0.5,0]
 
 [IButton,"ZPlugin:No Left Click Rotation:Github",
-    "",
+    "Open the project on GitHub",
     [FileExecute,[Var,nlcrDll],OpenUrl,"https://github.com/iillya/NoLeftClickRotation"]
 ,0,0.5,0]
 

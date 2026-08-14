@@ -278,6 +278,52 @@ std::wstring ParentPath(const std::wstring& path) {
     return slash == std::wstring::npos ? std::wstring() : path.substr(0, slash);
 }
 
+std::wstring FindZFileUtilsPath() {
+    std::vector<wchar_t> executablePath(32768, L'\0');
+    const DWORD length = GetModuleFileNameW(
+        nullptr, executablePath.data(),
+        static_cast<DWORD>(executablePath.size()));
+    if (!length || length >= static_cast<DWORD>(executablePath.size())) {
+        return {};
+    }
+
+    const std::wstring root = ParentPath(executablePath.data());
+    if (root.empty()) return {};
+    const std::wstring candidates[] = {
+        root + L"\\ZData\\ZPlugs64\\MacroData\\ZFileUtils64.dll",
+        root + L"\\ZData\\ZPlugs64\\ZFileUtils64.dll",
+        root + L"\\ZStartup\\ZPlugs64\\ZFileUtils64.dll",
+    };
+    for (const std::wstring& candidate : candidates) {
+        const DWORD attributes = GetFileAttributesW(candidate.c_str());
+        if (attributes != INVALID_FILE_ATTRIBUTES &&
+            (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+            return candidate;
+        }
+    }
+    return {};
+}
+
+std::string NarrowExistingPath(const std::wstring& path) {
+    std::wstring compatiblePath = path;
+    std::vector<wchar_t> shortPath(32768, L'\0');
+    const DWORD shortLength = GetShortPathNameW(
+        path.c_str(), shortPath.data(), static_cast<DWORD>(shortPath.size()));
+    if (shortLength && shortLength < static_cast<DWORD>(shortPath.size())) {
+        compatiblePath.assign(shortPath.data(), shortLength);
+    }
+    const int bytes = WideCharToMultiByte(
+        CP_ACP, 0, compatiblePath.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    if (bytes <= 1) return {};
+    std::string result(static_cast<size_t>(bytes), '\0');
+    if (!WideCharToMultiByte(CP_ACP, 0, compatiblePath.c_str(), -1,
+                             result.data(), bytes, nullptr, nullptr)) {
+        return {};
+    }
+    result.pop_back();
+    return result;
+}
+
 bool EnsureF12HotkeyConfig() {
     std::vector<wchar_t> modulePath(32768, L'\0');
     const DWORD length = GetModuleFileNameW(
@@ -683,6 +729,25 @@ extern "C" __declspec(dllexport) int __cdecl Init(
     unsigned char*, double, void*, void*) {
     (void)EnsureF12HotkeyConfig();
     return Install() ? 1 : 0;
+}
+
+// Return the path of ZBrush's own ZFileUtils DLL to ZScript. This function
+// deliberately does not load or call ZFileUtils: ZBrush invokes it later via
+// FileExecute, preserving the host's supported plugin call boundary.
+extern "C" __declspec(dllexport) int __cdecl GetZFileUtilsPath(
+    unsigned char*, double, void* memIn, void* memOut) {
+    constexpr size_t kPathBufferBytes = 1024;
+    void* destination = WritableRange(memIn, kPathBufferBytes) ? memIn : nullptr;
+    if (!destination && WritableRange(memOut, kPathBufferBytes)) {
+        destination = memOut;
+    }
+    if (!destination) return 0;
+
+    std::memset(destination, 0, kPathBufferBytes);
+    const std::string path = NarrowExistingPath(FindZFileUtilsPath());
+    if (path.empty() || path.size() >= kPathBufferBytes) return 0;
+    std::memcpy(destination, path.c_str(), path.size() + 1);
+    return 1;
 }
 
 // Reliable DLL -> ZScript channel: the ZScript creates a 16-byte memory block

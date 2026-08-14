@@ -37,16 +37,51 @@ WINDOW_ID_PATH = "Preferences:Utilities:View Window Id"
 EDIT_PATH = "Transform:Edit"
 LOCK_CAMERA_PATH = "Draw:Lock Camera"
 
-PALETTE = "Zplugin:禁用左键导航"
-# Legacy paths from older installs (English palette and its "V1" subpalette);
-# kept only so they can be closed during setup, the new UI lives directly
-# under PALETTE.
-LEGACY_PALETTE = "Zplugin:No Left Click Rotation"
-BODY = LEGACY_PALETTE + ":V1"
-ENABLE_PATH = PALETTE + ":启用"
-CAM_LOCK_PATH = PALETTE + ":锁定相机"
-BILI_PATH = PALETTE + ":BiliBli"
-GITHUB_PATH = PALETTE + ":Github"
+def _system_language_is_chinese():
+    """Use the Windows UI language; unsupported languages fall back to English."""
+    try:
+        get_language = ctypes.windll.kernel32.GetUserDefaultUILanguage
+        get_language.restype = wintypes.WORD
+        return (int(get_language()) & 0x03FF) == 0x0004
+    except Exception:
+        return False
+
+
+_TEXT_EN = {
+    "palette": "No Left Click Rotation",
+    "enable": "Enable",
+    "enable_info": "Enable the plugin",
+    "camera_lock": "Camera Lock",
+    "camera_lock_info": "Enable the camera lock",
+    "bili": "BiliBli",
+    "bili_info": "By神说要凑数，Open the author’s BiliBili page",
+    "github": "GitHub",
+    "github_info": "Open the project on GitHub",
+}
+_TEXT_ZH = {
+    "palette": "禁用左键导航",
+    "enable": "启用",
+    "enable_info": "启用插件",
+    "camera_lock": "锁定相机",
+    "camera_lock_info": "启用相机锁定",
+    "bili": "哔哩哔哩",
+    "bili_info": "By神说要凑数，点击打开作者的哔哩哔哩主页",
+    "github": "GitHub",
+    "github_info": "打开项目的 GitHub 页面",
+}
+UI_TEXT = _TEXT_ZH if _system_language_is_chinese() else _TEXT_EN
+
+ENGLISH_PALETTE = "Zplugin:No Left Click Rotation"
+CHINESE_PALETTE = "Zplugin:禁用左键导航"
+PALETTE = "Zplugin:" + UI_TEXT["palette"]
+# Close either localized palette left by an earlier run. BODY is the old V1
+# subpalette used by pre-stable builds.
+LEGACY_PALETTES = (ENGLISH_PALETTE, CHINESE_PALETTE)
+BODY = ENGLISH_PALETTE + ":V1"
+ENABLE_PATH = PALETTE + ":" + UI_TEXT["enable"]
+CAM_LOCK_PATH = PALETTE + ":" + UI_TEXT["camera_lock"]
+BILI_PATH = PALETTE + ":" + UI_TEXT["bili"]
+GITHUB_PATH = PALETTE + ":" + UI_TEXT["github"]
 
 IDLE = 0
 UI_PASS = 1
@@ -640,29 +675,28 @@ def _open_github(sender):
 
 
 def _setup_ui():
-    if zbc.exists(PALETTE):
-        zbc.close(PALETTE)
-    if zbc.exists(LEGACY_PALETTE):
-        zbc.close(LEGACY_PALETTE)
     if zbc.exists(BODY):
         zbc.close(BODY)
+    for old_palette in LEGACY_PALETTES:
+        if zbc.exists(old_palette):
+            zbc.close(old_palette)
     zbc.add_subpalette(PALETTE, title_mode=0)
     zbc.add_switch(
         ENABLE_PATH, True,
-        "启用插件",
+        UI_TEXT["enable_info"],
         _toggle, initially_disabled=False, width=150,
     )
     zbc.add_switch(
         CAM_LOCK_PATH, True,
-        "启用相机锁定",
+        UI_TEXT["camera_lock_info"],
         _toggle_cam_lock, initially_disabled=False, width=150,
     )
     zbc.add_button(
-        BILI_PATH, "By神说要凑数，点击跳转作者首页",
+        BILI_PATH, UI_TEXT["bili_info"],
         _open_bili, initially_disabled=False, width=150,
     )
     zbc.add_button(
-        GITHUB_PATH, "点击打开Github仓库",
+        GITHUB_PATH, UI_TEXT["github_info"],
         _open_github, initially_disabled=False, width=150,
     )
 
