@@ -18,7 +18,7 @@
     ]
 ]
 [VarDef,nlcrEnabled,1]
-[VarDef,nlcrCamLock,1]
+[VarDef,nlcrCamLock,0]
 [VarDef,nlcrEvent,0]
 [VarDef,nlcrWindow,-1]
 [VarDef,nlcrMat,0]
@@ -58,7 +58,7 @@
         [MemCreate,nlcrMem,16,0]
         [FileExecute,[Var,nlcrDll],Init]
         [VarSet,nlcrEnabled,[IGet,"ZPlugin:No Left Click Rotation:Enable"]]
-        [VarSet,nlcrCamLock,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock"]]
+        [VarSet,nlcrCamLock,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock Only"]]
         [FileExecute,[Var,nlcrDll],SetEnabled,,[Var,nlcrEnabled]]
         [FileExecute,[Var,nlcrDll],SetCameraLock,,[Var,nlcrCamLock]]
         [SleepAgain,0.005,1+2+4+8+64+128+512]
@@ -72,7 +72,7 @@
         [If,[IGet,Transform:Edit],
             [VarAdd,nlcrStateBits,2]
         ]
-        [If,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock"],
+        [If,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock Only"],
             [VarAdd,nlcrStateBits,4]
         ]
 
@@ -130,12 +130,12 @@
         // UI maintenance is intentionally after the urgent camera/replay
         // path so it cannot add latency to right-button rotation startup.
         [If,[Var,nlcrEnabled],
-            [If,[IsEnabled,"ZPlugin:No Left Click Rotation:Camera Lock"] == 0,
-                [IEnable,"ZPlugin:No Left Click Rotation:Camera Lock"]
+            [If,[IsEnabled,"ZPlugin:No Left Click Rotation:Camera Lock Only"] == 0,
+                [IEnable,"ZPlugin:No Left Click Rotation:Camera Lock Only"]
             ]
         ,
-            [If,[IsEnabled,"ZPlugin:No Left Click Rotation:Camera Lock"],
-                [IDisable,"ZPlugin:No Left Click Rotation:Camera Lock"]
+            [If,[IsEnabled,"ZPlugin:No Left Click Rotation:Camera Lock Only"],
+                [IDisable,"ZPlugin:No Left Click Rotation:Camera Lock Only"]
             ]
         ]
 
@@ -191,7 +191,7 @@
     [MemCreate,nlcrMem,16,0]
     [FileExecute,[Var,nlcrDll],Init]
     [VarSet,nlcrEnabled,[IGet,"ZPlugin:No Left Click Rotation:Enable"]]
-    [VarSet,nlcrCamLock,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock"]]
+    [VarSet,nlcrCamLock,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock Only"]]
     // SetEnabled resets any half-finished LightBox/model gesture in the DLL.
     [FileExecute,[Var,nlcrDll],SetEnabled,,[Var,nlcrEnabled]]
     [FileExecute,[Var,nlcrDll],SetCameraLock,,[Var,nlcrCamLock]]
@@ -205,17 +205,17 @@
     [VarSet,nlcrEnabled,1]
     [VarSet,nlcrLockPrev,-1]
     [FileExecute,[Var,nlcrDll],SetEnabled,,1]
-    [IEnable,"ZPlugin:No Left Click Rotation:Camera Lock"]
+    [IEnable,"ZPlugin:No Left Click Rotation:Camera Lock Only"]
 ,
     [VarSet,nlcrEnabled,0]
     [FileExecute,[Var,nlcrDll],SetEnabled,,0]
-    [IDisable,"ZPlugin:No Left Click Rotation:Camera Lock"]
+    [IDisable,"ZPlugin:No Left Click Rotation:Camera Lock Only"]
     [ISet,"Draw:Lock Camera",0]
     [VarSet,nlcrLockPrev,0]
     [VarSet,nlcrLockTick,0]
 ,0,0.5,0]
 
-[ISwitch,"ZPlugin:No Left Click Rotation:Camera Lock",1,
+[ISwitch,"ZPlugin:No Left Click Rotation:Camera Lock Only",0,
     "Enable the camera lock",
     [VarSet,nlcrCamLock,1]
     [VarSet,nlcrLockPrev,-1]
@@ -259,7 +259,7 @@
         [MemCreate,nlcrMem,16,0]
     ]
     [VarSet,nlcrEnabled,[IGet,"ZPlugin:No Left Click Rotation:Enable"]]
-    [VarSet,nlcrCamLock,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock"]]
+    [VarSet,nlcrCamLock,[IGet,"ZPlugin:No Left Click Rotation:Camera Lock Only"]]
     [FileExecute,[Var,nlcrDll],SetEnabled,,[Var,nlcrEnabled]]
     [FileExecute,[Var,nlcrDll],SetCameraLock,,[Var,nlcrCamLock]]
     [RoutineCall,NLCRStartSleep]
@@ -269,7 +269,7 @@
 
 // Keep ZScript-generated interface items enabled when other plugins load.
 [IEnable,"ZPlugin:No Left Click Rotation:Enable"]
-[IEnable,"ZPlugin:No Left Click Rotation:Camera Lock"]
+[IEnable,"ZPlugin:No Left Click Rotation:Camera Lock Only"]
 [IEnable,"ZPlugin:No Left Click Rotation:Reset Sleep"]
 [IEnable,"ZPlugin:No Left Click Rotation:BiliBli"]
 [IEnable,"ZPlugin:No Left Click Rotation:Github"]

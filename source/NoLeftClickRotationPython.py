@@ -51,8 +51,10 @@ _TEXT_EN = {
     "palette": "No Left Click Rotation",
     "enable": "Enable",
     "enable_info": "Enable the plugin",
-    "camera_lock": "Camera Lock",
-    "camera_lock_info": "Enable the camera lock",
+    "camera_lock": "Camera Lock Only",
+    "camera_lock_info":
+        "Locks the camera when enabled,right button unlocks. left button is "
+        "not handled.",
     "bili": "BiliBli",
     "bili_info": "By神说要凑数，Open the author’s BiliBili page",
     "github": "GitHub",
@@ -62,8 +64,8 @@ _TEXT_ZH = {
     "palette": "禁用左键导航",
     "enable": "启用",
     "enable_info": "启用插件",
-    "camera_lock": "锁定相机",
-    "camera_lock_info": "启用相机锁定",
+    "camera_lock": "仅锁定相机",
+    "camera_lock_info": "启用时相机锁定，右键解锁，左键不做处理",
     "bili": "哔哩哔哩",
     "bili_info": "By神说要凑数，点击打开作者的哔哩哔哩主页",
     "github": "GitHub",
@@ -164,7 +166,7 @@ kernel32.VirtualProtect.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
 
 _hwnd = 0
 _enabled = True
-_camera_lock = True
+_camera_lock = False
 _state = IDLE
 _injecting = False
 _system_cursor_seen = False
@@ -488,6 +490,11 @@ def _start_sculpt(hwnd):
 
 def _begin_left(hwnd, msg, wparam, lparam):
     global _state, _system_cursor_seen, _down_cursor
+    # 仅锁定相机勾选：左键不做任何处理，完全放行。相机锁定阻止空白
+    # 画布旋转，右键仍负责解锁/重锁相机。
+    if _camera_lock:
+        _state = IDLE
+        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
     if not _active():
         _state = IDLE
         return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
@@ -687,7 +694,7 @@ def _setup_ui():
         _toggle, initially_disabled=False, width=150,
     )
     zbc.add_switch(
-        CAM_LOCK_PATH, True,
+        CAM_LOCK_PATH, False,
         UI_TEXT["camera_lock_info"],
         _toggle_cam_lock, initially_disabled=False, width=150,
     )

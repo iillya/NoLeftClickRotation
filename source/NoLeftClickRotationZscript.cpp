@@ -61,7 +61,7 @@ enum class Gesture : int {
 HINSTANCE g_module = nullptr;
 std::atomic<HWND> g_zbrush{nullptr};
 std::atomic<bool> g_enabled{false};
-std::atomic<bool> g_cameraLock{true};
+std::atomic<bool> g_cameraLock{false};
 std::atomic<bool> g_editMode{false};
 std::atomic<int> g_windowId{-1};
 std::atomic<int> g_startDelayMs{1};
@@ -595,6 +595,13 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
     if (message == WM_LBUTTONDOWN) {
         if (!g_enabled.load() || !g_editMode.load()) {
             g_gesture.store(Gesture::UiPass);
+            return DefSubclassProc(hwnd, message, wparam, lparam);
+        }
+        // Camera-lock-only checked: the left button is never touched and is
+        // passed through unchanged. The camera lock prevents blank-canvas
+        // rotation; the right button still unlocks/relocks the camera.
+        if (g_cameraLock.load()) {
+            g_gesture.store(Gesture::Idle);
             return DefSubclassProc(hwnd, message, wparam, lparam);
         }
         if (g_windowId.load() != kCanvasWindowId) {
