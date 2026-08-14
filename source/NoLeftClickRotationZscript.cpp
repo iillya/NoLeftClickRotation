@@ -70,7 +70,6 @@ std::atomic<bool> g_injecting{false};
 std::atomic<bool> g_systemCursorSeen{false};
 std::atomic<bool> g_rightDown{false};
 std::atomic<bool> g_rightPending{false};
-std::atomic<bool> g_rightUpPending{false};
 std::atomic<bool> g_rightReleaseSettling{false};
 std::atomic<bool> g_rightReleaseHoldWake{false};
 std::atomic<bool> g_hoverReady{false};
@@ -166,13 +165,12 @@ bool StopSleepWatchdog() {
     return true;
 }
 
-void SendRightUpAndSettle(HWND hwnd) {
-    // ZBrush can finish the final camera transform after WM_RBUTTONUP returns.
+void BeginRightReleaseSettle(HWND hwnd) {
+    // The physical right-button release has already passed through ZBrush.
     // Keep the camera unlocked until it consumes a subsequent no-button state,
     // then cross one normal bridge wake before relocking.
     g_rightReleaseSettling.store(true, std::memory_order_release);
     g_rightReleaseHoldWake.store(false, std::memory_order_release);
-    SendMouse(hwnd, WM_RBUTTONUP, Modifiers());
     if (!PostMessageW(hwnd, WM_MOUSEMOVE, Modifiers(), CursorLParam(hwnd))) {
         g_rightReleaseSettling.store(false, std::memory_order_release);
         g_rightReleaseHoldWake.store(true, std::memory_order_release);
@@ -364,7 +362,6 @@ bool WantLockNow() {
         g_rightReleaseHoldWake.load(std::memory_order_acquire);
     const bool rightHeld = g_rightDown.load() ||
                            g_rightPending.load() ||
-                           g_rightUpPending.load() ||
                            releaseSettling || releaseHoldWake ||
                            (GetAsyncKeyState(VK_RBUTTON) & 0x8000);
     return g_enabled.load() && g_editMode.load() && !rightHeld;
@@ -524,7 +521,6 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
         // wake loop unlocks the camera and then replays the press.
         g_rightDown.store(true);
         g_rightPending.store(true);
-        g_rightUpPending.store(false);
         g_rightReleaseSettling.store(false);
         g_rightReleaseHoldWake.store(false);
         // Wake the ZScript Sleep loop on the next message turn instead of
@@ -535,16 +531,20 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
         return 0;
     }
     if (message == WM_RBUTTONUP) {
+        const bool ownedPress = g_rightDown.exchange(false);
+        const bool pendingReplay = g_rightPending.exchange(false);
         if (!g_enabled.load() || !g_cameraLock.load() || !g_editMode.load()) {
+            g_rightReleaseSettling.store(false);
+            g_rightReleaseHoldWake.store(false);
             return DefSubclassProc(hwnd, message, wparam, lparam);
         }
-        // Keep the physical release while the swallowed/replayed press is
-        // active, then deliver one complete synthetic release after unlock.
-        if (g_rightDown.exchange(false) || g_rightPending.load()) {
-            g_rightUpPending.store(true);
-            return 0;
-        }
-        return DefSubclassProc(hwnd, message, wparam, lparam);
+        // The physical DOWN was swallowed, but the physical UP is passed
+        // immediately. This ends a replayed gesture without waiting for the
+        // ZScript bridge and avoids any synthetic-release tail movement.
+        const LRESULT result =
+            DefSubclassProc(hwnd, message, wparam, lparam);
+        if (ownedPress || pendingReplay) BeginRightReleaseSettle(hwnd);
+        return result;
     }
     if (message == WM_LBUTTONDOWN) {
         if (!g_enabled.load() || !g_editMode.load()) {
@@ -628,7 +628,6 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
         ResetGesture();
         g_rightDown.store(false);
         g_rightPending.store(false);
-        g_rightUpPending.store(false);
         g_rightReleaseSettling.store(false);
         g_rightReleaseHoldWake.store(false);
         RestoreCursorWatch();
@@ -718,8 +717,7 @@ extern "C" __declspec(dllexport) int __cdecl NlcrSync(
     // Keep the bridge at 1ms only while a physical/pending right gesture still
     // needs replay. Release settling/grace deliberately returns 0 so ZScript
     // crosses one normal 5ms scheduling boundary before relocking.
-    const bool rightActive = g_rightDown.load() || g_rightPending.load() ||
-                             g_rightUpPending.load();
+    const bool rightActive = g_rightDown.load() || g_rightPending.load();
     const float right = rightActive ? 1.0f : 0.0f;
     bool wrote = false;
     if (WritableRange(memIn, 16)) {
@@ -751,7 +749,6 @@ extern "C" __declspec(dllexport) int __cdecl SetCameraLock(
         // Abort any in-flight right-button or gesture handling.
         g_rightDown.store(false);
         g_rightPending.store(false);
-        g_rightUpPending.store(false);
         g_rightReleaseSettling.store(false);
         g_rightReleaseHoldWake.store(false);
         ResetGesture();
@@ -781,23 +778,16 @@ extern "C" __declspec(dllexport) int __cdecl ReplayRightDown(
     unsigned char*, double, void*, void*) {
     if (!g_enabled.load()) {
         g_rightPending.store(false);
-        g_rightUpPending.store(false);
         return 0;
     }
     const HWND hwnd = g_zbrush.load();
     if (g_rightPending.load() && hwnd) {
         g_rightPending.store(false);
-        SendMouse(hwnd, WM_RBUTTONDOWN, Modifiers() | MK_RBUTTON);
-        if (!g_rightDown.load() || g_rightUpPending.load()) {
-            g_rightUpPending.store(false);
-            SendRightUpAndSettle(hwnd);
+        if (g_rightDown.load() &&
+            (GetAsyncKeyState(VK_RBUTTON) & 0x8000)) {
+            SendMouse(hwnd, WM_RBUTTONDOWN, Modifiers() | MK_RBUTTON);
+            return 1;
         }
-        return 1;
-    }
-    if (g_rightUpPending.load() && hwnd) {
-        g_rightUpPending.store(false);
-        SendRightUpAndSettle(hwnd);
-        return 1;
     }
     return 0;
 }
@@ -851,7 +841,6 @@ extern "C" __declspec(dllexport) int __cdecl SetEnabled(
         // Clear right-button and hover state when the plugin is disabled.
         g_rightDown.store(false);
         g_rightPending.store(false);
-        g_rightUpPending.store(false);
         g_rightReleaseSettling.store(false);
         g_rightReleaseHoldWake.store(false);
         g_hoverMat.store(0.0);

@@ -138,7 +138,7 @@
         ]
 
         // Poll at 1ms only while a physical/pending right gesture still needs
-        // replay. After the synthetic release reaches ZBrush, nlcrRight drops
+        // replay. After the physical release reaches ZBrush, nlcrRight drops
         // to 0 and the bridge crosses one normal 5ms cycle before relocking;
         // this matches the stable Python version's post-release settling.
         [VarSet,nlcrFastSleep,0]
