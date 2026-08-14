@@ -641,16 +641,12 @@ def _setup_ui():
     )
     zbc.add_button(
         BILI_PATH, "By神说要凑数，点击跳转作者首页",
-        _open_bili, initially_disabled=False, width=150, hotkey='',
+        _open_bili, initially_disabled=False, width=150,
     )
     zbc.add_button(
         GITHUB_PATH, "点击打开Github仓库",
-        _open_github, initially_disabled=False, width=150, hotkey='',
+        _open_github, initially_disabled=False, width=150,
     )
-    # ZBrush may auto-assign a default shortcut to new UI items; clear it so
-    # the bubble help shows only the custom text and no shortcut suffix.
-    zbc.set_hotkey(BILI_PATH, '')
-    zbc.set_hotkey(GITHUB_PATH, '')
 
 
 def main():
