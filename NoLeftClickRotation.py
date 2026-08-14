@@ -299,6 +299,14 @@ def _find_set_cursor_slot():
             break
         dll = ctypes.string_at(module + name_rva).decode("ascii", "replace")
         if dll.casefold() == "user32.dll":
+            # Bound imports (OriginalFirstThunk == 0) have their FirstThunk
+            # rewritten in place by the loader with resolved function
+            # addresses, which are not import-by-name RVAs. Walking them would
+            # dereference arbitrary memory, so skip such descriptors instead
+            # of crashing or mis-reading the table.
+            if not original:
+                descriptor += 20
+                continue
             lookup = module + (original or first)
             index = 0
             while True:
