@@ -743,8 +743,4 @@ def main():
         _lock_camera(False)
 
 
-
-# Official ZBrush plugin entry pattern: run only when the script is executed
-# directly by the ZBrush Python VM, not when imported as a module.
-if __name__ == "__main__":
-    main()
+main()
