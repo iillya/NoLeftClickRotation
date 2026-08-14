@@ -943,6 +943,12 @@ extern "C" __declspec(dllexport) int __cdecl SyncState(
     }
     if (previousEdit && !editMode) ResetGesture();
     if (!g_enabled.load()) ResetGesture();
+    // Every successful state sync proves the ZScript Sleep loop is alive.
+    // Refresh the heartbeat exactly like NlcrSync does on the 2026 channel;
+    // without this the watchdog treats a healthy 2022 bridge as dead and
+    // floods F12, which re-triggers Reset Sleep and stacks Sleep loops until
+    // the host crashes.
+    g_lastSleepHeartbeatMs.store(GetTickCount64());
     return 1;
 }
 
