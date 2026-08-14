@@ -9,6 +9,8 @@
 #include <cstring>
 #include <cwchar>
 #include <iterator>
+#include <string>
+#include <vector>
 
 namespace {
 
@@ -21,6 +23,8 @@ constexpr UINT kClassifyMs = 5;
 constexpr UINT kSleepWatchdogPollMs = 25;
 constexpr ULONGLONG kSleepHeartbeatTimeoutMs = 1000;
 constexpr ULONGLONG kF12RetryMs = 500;
+constexpr ULONGLONG kHoverMaxAgeMs = 40;
+constexpr LONG kHoverMaxDistancePx = 3;
 constexpr int kCanvasWindowId = 1004;
 
 // Numeric resource IDs of the standard Windows system cursors. The IDC_*
@@ -54,6 +58,7 @@ enum class Gesture : int {
     ModelPass,
 };
 
+HINSTANCE g_module = nullptr;
 std::atomic<HWND> g_zbrush{nullptr};
 std::atomic<bool> g_enabled{false};
 std::atomic<bool> g_cameraLock{true};
@@ -66,10 +71,14 @@ std::atomic<bool> g_systemCursorSeen{false};
 std::atomic<bool> g_rightDown{false};
 std::atomic<bool> g_rightPending{false};
 std::atomic<bool> g_rightUpPending{false};
-std::atomic<ULONGLONG> g_rightRelockUntil{0};
+std::atomic<bool> g_rightReleaseSettling{false};
+std::atomic<bool> g_rightReleaseHoldWake{false};
 std::atomic<bool> g_hoverReady{false};
 std::atomic<double> g_hoverMat{0.0};
 std::atomic<ULONGLONG> g_lastHoverMs{0};
+std::atomic<ULONGLONG> g_hoverSampleMs{0};
+std::atomic<LONG> g_hoverSampleX{0};
+std::atomic<LONG> g_hoverSampleY{0};
 std::atomic<ULONGLONG> g_lastSleepHeartbeatMs{0};
 std::atomic<ULONGLONG> g_lastF12WakeMs{0};
 HANDLE g_sleepWatchdogTimer = nullptr;
@@ -147,14 +156,31 @@ VOID CALLBACK SleepWatchdogCallback(PVOID, BOOLEAN) {
     }
 }
 
-void StopSleepWatchdog() {
+bool StopSleepWatchdog() {
     const HANDLE timer = g_sleepWatchdogTimer;
+    if (!timer) return true;
+    if (!DeleteTimerQueueTimer(nullptr, timer, INVALID_HANDLE_VALUE)) {
+        return false;
+    }
     g_sleepWatchdogTimer = nullptr;
-    if (timer) DeleteTimerQueueTimer(nullptr, timer, INVALID_HANDLE_VALUE);
+    return true;
+}
+
+void SendRightUpAndSettle(HWND hwnd) {
+    // ZBrush can finish the final camera transform after WM_RBUTTONUP returns.
+    // Keep the camera unlocked until it consumes a subsequent no-button state,
+    // then cross one normal bridge wake before relocking.
+    g_rightReleaseSettling.store(true, std::memory_order_release);
+    g_rightReleaseHoldWake.store(false, std::memory_order_release);
+    SendMouse(hwnd, WM_RBUTTONUP, Modifiers());
+    if (!PostMessageW(hwnd, WM_MOUSEMOVE, Modifiers(), CursorLParam(hwnd))) {
+        g_rightReleaseSettling.store(false, std::memory_order_release);
+        g_rightReleaseHoldWake.store(true, std::memory_order_release);
+    }
 }
 
 bool StartSleepWatchdog() {
-    StopSleepWatchdog();
+    if (!StopSleepWatchdog()) return false;
     return CreateTimerQueueTimer(
                &g_sleepWatchdogTimer, nullptr, SleepWatchdogCallback, nullptr,
                kSleepWatchdogPollMs, kSleepWatchdogPollMs,
@@ -233,10 +259,94 @@ bool InstallCursorWatch() {
 
 void RestoreCursorWatch() {
     if (g_setCursorSlot && g_originalSetCursor) {
-        WritePointer(g_setCursorSlot, reinterpret_cast<void*>(g_originalSetCursor));
+        // Do not overwrite a hook installed after ours. Such a hook may also
+        // chain through SetCursorWatch, so keep our callback state alive when
+        // the import slot is no longer owned by this plugin.
+        if (*g_setCursorSlot == reinterpret_cast<void*>(&SetCursorWatch)) {
+            if (WritePointer(g_setCursorSlot,
+                             reinterpret_cast<void*>(g_originalSetCursor))) {
+                g_setCursorSlot = nullptr;
+                g_originalSetCursor = nullptr;
+            }
+        }
+        return;
     }
     g_setCursorSlot = nullptr;
     g_originalSetCursor = nullptr;
+}
+
+std::wstring ParentPath(const std::wstring& path) {
+    const size_t slash = path.find_last_of(L"\\/");
+    return slash == std::wstring::npos ? std::wstring() : path.substr(0, slash);
+}
+
+bool EnsureF12HotkeyConfig() {
+    std::vector<wchar_t> modulePath(32768, L'\0');
+    const DWORD length = GetModuleFileNameW(
+        g_module, modulePath.data(), static_cast<DWORD>(modulePath.size()));
+    if (!length || length >= static_cast<DWORD>(modulePath.size())) return false;
+
+    // DLL -> NoLeftClickRotationData -> ZPlugs64 -> ZStartup.
+    const std::wstring dataDir = ParentPath(modulePath.data());
+    const std::wstring zplugsDir = ParentPath(dataDir);
+    const std::wstring zstartupDir = ParentPath(zplugsDir);
+    if (dataDir.empty() || zplugsDir.empty() || zstartupDir.empty()) return false;
+    const std::wstring hotkeysDir = zstartupDir + L"\\HotKeys";
+    const std::wstring hotkeysPath = hotkeysDir + L"\\StartupHotkeys.txt";
+
+    std::vector<char> existing;
+    HANDLE input = CreateFileW(hotkeysPath.c_str(), GENERIC_READ,
+                               FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+                               OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (input != INVALID_HANDLE_VALUE) {
+        LARGE_INTEGER size{};
+        if (!GetFileSizeEx(input, &size) || size.QuadPart < 0 ||
+            size.QuadPart > 4 * 1024 * 1024) {
+            CloseHandle(input);
+            return false;
+        }
+        existing.resize(static_cast<size_t>(size.QuadPart));
+        DWORD read = 0;
+        if (!existing.empty() &&
+            (!ReadFile(input, existing.data(),
+                       static_cast<DWORD>(existing.size()), &read, nullptr) ||
+             read != static_cast<DWORD>(existing.size()))) {
+            CloseHandle(input);
+            return false;
+        }
+        CloseHandle(input);
+    }
+
+    std::string upper(existing.begin(), existing.end());
+    for (char& ch : upper) {
+        if (ch >= 'a' && ch <= 'z') ch = static_cast<char>(ch - 'a' + 'A');
+    }
+    constexpr char kBinding[] =
+        "[ZPLUGIN:NO LEFT CLICK ROTATION:RESET SLEEP,91]";
+    if (upper.find(kBinding) != std::string::npos) return true;
+
+    if (!CreateDirectoryW(hotkeysDir.c_str(), nullptr) &&
+        GetLastError() != ERROR_ALREADY_EXISTS) {
+        return false;
+    }
+    HANDLE output = CreateFileW(hotkeysPath.c_str(), FILE_APPEND_DATA,
+                                FILE_SHARE_READ, nullptr, OPEN_ALWAYS,
+                                FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (output == INVALID_HANDLE_VALUE) return false;
+    std::string append;
+    if (!existing.empty() && existing.back() != '\n' && existing.back() != '\r') {
+        append = "\r\n";
+    }
+    append += "\r\n// No Left Click Rotation Sleep watchdog (F12)\r\n";
+    append += kBinding;
+    append += " // F12\r\n";
+    DWORD written = 0;
+    const bool ok = WriteFile(output, append.data(),
+                              static_cast<DWORD>(append.size()),
+                              &written, nullptr) != FALSE &&
+                    written == static_cast<DWORD>(append.size());
+    CloseHandle(output);
+    return ok;
 }
 
 void EndMiddle() {
@@ -245,10 +355,29 @@ void EndMiddle() {
 }
 
 bool WantLockNow() {
+    const bool releaseSettling =
+        g_rightReleaseSettling.load(std::memory_order_acquire);
+    // Once the post-release move has passed through ZBrush, hold exactly one
+    // successful sync wake unlocked. NlcrSync clears this latch only after it
+    // has actually written the unlock state back to ZScript.
+    const bool releaseHoldWake =
+        g_rightReleaseHoldWake.load(std::memory_order_acquire);
     const bool rightHeld = g_rightDown.load() ||
+                           g_rightPending.load() ||
+                           g_rightUpPending.load() ||
+                           releaseSettling || releaseHoldWake ||
                            (GetAsyncKeyState(VK_RBUTTON) & 0x8000);
-    const bool relockGrace = GetTickCount64() < g_rightRelockUntil.load();
-    return g_enabled.load() && g_editMode.load() && !rightHeld && !relockGrace;
+    return g_enabled.load() && g_editMode.load() && !rightHeld;
+}
+
+bool HoverMatchesCursor() {
+    if (!g_hoverReady.load(std::memory_order_acquire)) return false;
+    const ULONGLONG sampled = g_hoverSampleMs.load();
+    if (!sampled || GetTickCount64() - sampled > kHoverMaxAgeMs) return false;
+    POINT point{};
+    if (!GetCursorPos(&point)) return false;
+    return std::abs(point.x - g_hoverSampleX.load()) <= kHoverMaxDistancePx &&
+           std::abs(point.y - g_hoverSampleY.load()) <= kHoverMaxDistancePx;
 }
 
 bool NeedPixolNow() {
@@ -393,20 +522,24 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
         }
         // Swallow the press while the camera may still be locked; the ZScript
         // wake loop unlocks the camera and then replays the press.
-        g_rightRelockUntil.store(0);
         g_rightDown.store(true);
         g_rightPending.store(true);
         g_rightUpPending.store(false);
+        g_rightReleaseSettling.store(false);
+        g_rightReleaseHoldWake.store(false);
+        // Wake the ZScript Sleep loop on the next message turn instead of
+        // waiting for its 5ms timeout. This move carries no button flags and
+        // does not move the cursor, so ZBrush cannot start a right gesture
+        // before ReplayRightDown delivers the real press after camera unlock.
+        (void)PostMessageW(hwnd, WM_MOUSEMOVE, Modifiers(), CursorLParam(hwnd));
         return 0;
     }
     if (message == WM_RBUTTONUP) {
         if (!g_enabled.load() || !g_cameraLock.load() || !g_editMode.load()) {
             return DefSubclassProc(hwnd, message, wparam, lparam);
         }
-        // Relock the camera 2ms after the right button is released.
-        g_rightRelockUntil.store(GetTickCount64() + 2);
-        // If a swallowed press is still pending, keep the release too so the
-        // replay delivers a complete click even for fast right clicks.
+        // Keep the physical release while the swallowed/replayed press is
+        // active, then deliver one complete synthetic release after unlock.
         if (g_rightDown.exchange(false) || g_rightPending.load()) {
             g_rightUpPending.store(true);
             return 0;
@@ -423,7 +556,7 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
             return DefSubclassProc(hwnd, message, wparam, lparam);
         }
         // Model under the pointer (hover cache) -> normal sculpt, no probe.
-        if (g_hoverReady.load() && g_hoverMat.load() != 0.0) {
+        if (HoverMatchesCursor() && g_hoverMat.load() != 0.0) {
             g_gesture.store(Gesture::ModelPass);
             return DefSubclassProc(hwnd, message, wparam, lparam);
         }
@@ -441,7 +574,9 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
         g_systemCursorSeen.store(false);
         g_gesture.store(Gesture::Classify);
         const LRESULT result = DefSubclassProc(hwnd, message, wparam, lparam);
-        SetTimer(hwnd, kClassifyTimer, kClassifyMs, nullptr);
+        if (!SetTimer(hwnd, kClassifyTimer, kClassifyMs, nullptr)) {
+            FinishClassification();
+        }
         return result;
     }
     if (message == WM_MOUSEMOVE) {
@@ -451,7 +586,16 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
         if (state == Gesture::Classify) {
             return 0;
         }
-        return DefSubclassProc(hwnd, message, wparam, lparam);
+        const LRESULT result = DefSubclassProc(hwnd, message, wparam, lparam);
+        if (g_rightReleaseSettling.load(std::memory_order_acquire) &&
+            (wparam & MK_RBUTTON) == 0) {
+            // The no-button state has entered ZBrush. Start the grace period
+            // here (after the synthetic UP), then let the bridge cross one
+            // normal 5ms Sleep cycle before it restores the camera lock.
+            g_rightReleaseSettling.store(false, std::memory_order_release);
+            g_rightReleaseHoldWake.store(true, std::memory_order_release);
+        }
+        return result;
     }
     if (message == WM_LBUTTONUP) {
         const Gesture state = g_gesture.load();
@@ -480,12 +624,13 @@ LRESULT CALLBACK SubclassProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpa
         return DefSubclassProc(hwnd, message, wparam, lparam);
     }
     if (message == WM_NCDESTROY) {
-        StopSleepWatchdog();
+        (void)StopSleepWatchdog();
         ResetGesture();
         g_rightDown.store(false);
         g_rightPending.store(false);
         g_rightUpPending.store(false);
-        g_rightRelockUntil.store(0);
+        g_rightReleaseSettling.store(false);
+        g_rightReleaseHoldWake.store(false);
         RestoreCursorWatch();
         RemoveWindowSubclass(hwnd, SubclassProc, kSubclassId);
         g_zbrush.store(nullptr);
@@ -537,6 +682,7 @@ bool Install() {
 
 extern "C" __declspec(dllexport) int __cdecl Init(
     unsigned char*, double, void*, void*) {
+    (void)EnsureF12HotkeyConfig();
     return Install() ? 1 : 0;
 }
 
@@ -546,11 +692,19 @@ extern "C" __declspec(dllexport) int __cdecl Init(
 // all flags travel through the input block, which ZScript reads back.
 extern "C" __declspec(dllexport) int __cdecl NlcrSync(
     unsigned char* text, double number, void* memIn, void* memOut) {
+    const bool previousEdit = g_editMode.load();
+    const int previousWindow = g_windowId.load();
+    const bool editMode = (static_cast<int>(number) & 2) != 0;
+    const int windowId = text ? std::atoi(reinterpret_cast<char*>(text)) : -1;
     g_enabled.store((static_cast<int>(number) & 1) != 0);
-    g_editMode.store((static_cast<int>(number) & 2) != 0);
+    g_editMode.store(editMode);
     g_cameraLock.store((static_cast<int>(number) & 4) != 0);
-    g_windowId.store(text ? std::atoi(reinterpret_cast<char*>(text)) : -1);
-    g_lastSleepHeartbeatMs.store(GetTickCount64());
+    g_windowId.store(windowId);
+    if (previousEdit != editMode || previousWindow != windowId) {
+        g_hoverReady.store(false, std::memory_order_release);
+        g_hoverSampleMs.store(0);
+    }
+    if (previousEdit && !editMode) ResetGesture();
     if (!g_enabled.load()) ResetGesture();
     // want = 1 lock, 0 unlock, -1 leave the camera switch alone. The -1 state
     // applies whenever the plugin is disabled or the camera lock feature is
@@ -561,13 +715,30 @@ extern "C" __declspec(dllexport) int __cdecl NlcrSync(
     }
     const float needPixol = NeedPixolNow() ? 1.0f : 0.0f;
     const float needHover = NeedHoverNow() ? 1.0f : 0.0f;
-    const float right = g_rightDown.load() ? 1.0f : 0.0f;
+    // Keep the bridge at 1ms only while a physical/pending right gesture still
+    // needs replay. Release settling/grace deliberately returns 0 so ZScript
+    // crosses one normal 5ms scheduling boundary before relocking.
+    const bool rightActive = g_rightDown.load() || g_rightPending.load() ||
+                             g_rightUpPending.load();
+    const float right = rightActive ? 1.0f : 0.0f;
+    bool wrote = false;
     if (WritableRange(memIn, 16)) {
         WriteSyncFloats(memIn, want, needPixol, needHover, right);
+        wrote = true;
     } else if (WritableRange(memOut, 16)) {
         WriteSyncFloats(memOut, want, needPixol, needHover, right);
+        wrote = true;
     }
-    return 1;
+    // A heartbeat is valid only when the ZScript-owned memory exchange
+    // succeeded. Otherwise the watchdog must restart the bridge instead of
+    // treating a one-way FileExecute call as healthy.
+    if (wrote) {
+        g_lastSleepHeartbeatMs.store(GetTickCount64());
+        if (!g_rightReleaseSettling.load(std::memory_order_acquire)) {
+            g_rightReleaseHoldWake.store(false, std::memory_order_release);
+        }
+    }
+    return wrote ? 1 : 0;
 }
 
 // Toggles whether the plugin owns the camera lock (and therefore also
@@ -581,7 +752,8 @@ extern "C" __declspec(dllexport) int __cdecl SetCameraLock(
         g_rightDown.store(false);
         g_rightPending.store(false);
         g_rightUpPending.store(false);
-        g_rightRelockUntil.store(0);
+        g_rightReleaseSettling.store(false);
+        g_rightReleaseHoldWake.store(false);
         ResetGesture();
     }
     return g_cameraLock.load() ? 1 : 0;
@@ -604,8 +776,7 @@ extern "C" __declspec(dllexport) int __cdecl OpenUrl(
 }
 
 // Called by the ZScript wake loop after it has released the camera lock.
-// Replays the swallowed right-button press so ZBrush starts the rotate
-// gesture with the camera already unlocked.
+// Replays the swallowed right-button press after the camera is unlocked.
 extern "C" __declspec(dllexport) int __cdecl ReplayRightDown(
     unsigned char*, double, void*, void*) {
     if (!g_enabled.load()) {
@@ -617,17 +788,15 @@ extern "C" __declspec(dllexport) int __cdecl ReplayRightDown(
     if (g_rightPending.load() && hwnd) {
         g_rightPending.store(false);
         SendMouse(hwnd, WM_RBUTTONDOWN, Modifiers() | MK_RBUTTON);
-        // The physical press may already be released; finish the click now so
-        // ZBrush never receives a dangling down.
         if (!g_rightDown.load() || g_rightUpPending.load()) {
             g_rightUpPending.store(false);
-            SendMouse(hwnd, WM_RBUTTONUP, Modifiers());
+            SendRightUpAndSettle(hwnd);
         }
         return 1;
     }
     if (g_rightUpPending.load() && hwnd) {
         g_rightUpPending.store(false);
-        SendMouse(hwnd, WM_RBUTTONUP, Modifiers());
+        SendRightUpAndSettle(hwnd);
         return 1;
     }
     return 0;
@@ -643,18 +812,34 @@ extern "C" __declspec(dllexport) int __cdecl SetHoverMat(
                                   state == Gesture::StartPending ||
                                   state == Gesture::LightBoxPass ||
                                   state == Gesture::Sculpting);
+    POINT point{};
+    const bool havePoint = GetCursorPos(&point) != FALSE;
+    g_hoverReady.store(false, std::memory_order_release);
     g_hoverMat.store(number);
-    g_hoverReady.store(!pressInProgress);
+    if (!pressInProgress && havePoint) {
+        g_hoverSampleX.store(point.x);
+        g_hoverSampleY.store(point.y);
+        g_hoverSampleMs.store(GetTickCount64());
+        g_hoverReady.store(true, std::memory_order_release);
+    }
     return g_hoverReady.load() ? 1 : 0;
 }
 
 extern "C" __declspec(dllexport) int __cdecl UpdatePixol(
     unsigned char*, double number, void*, void*) {
     if (g_gesture.load() == Gesture::WaitModel && number != 0.0) {
+        const HWND hwnd = g_zbrush.load();
+        if (!hwnd) {
+            g_gesture.store(Gesture::Idle);
+            return 0;
+        }
         EndMiddle();
         g_gesture.store(Gesture::StartPending);
-        SetTimer(g_zbrush.load(), kStartTimer,
-                 static_cast<UINT>(std::max(1, g_startDelayMs.load())), nullptr);
+        if (!SetTimer(hwnd, kStartTimer,
+                      static_cast<UINT>(std::max(1, g_startDelayMs.load())),
+                      nullptr)) {
+            StartSculpt();
+        }
     }
     return 1;
 }
@@ -667,9 +852,11 @@ extern "C" __declspec(dllexport) int __cdecl SetEnabled(
         g_rightDown.store(false);
         g_rightPending.store(false);
         g_rightUpPending.store(false);
-        g_rightRelockUntil.store(0);
+        g_rightReleaseSettling.store(false);
+        g_rightReleaseHoldWake.store(false);
         g_hoverMat.store(0.0);
         g_hoverReady.store(false);
+        g_hoverSampleMs.store(0);
     }
     ResetGesture();
     return g_enabled.load() ? 1 : 0;
@@ -677,6 +864,7 @@ extern "C" __declspec(dllexport) int __cdecl SetEnabled(
 
 BOOL APIENTRY DllMain(HINSTANCE module, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
+        g_module = module;
         DisableThreadLibraryCalls(module);
     }
     return TRUE;
