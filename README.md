@@ -9,7 +9,7 @@
 ## 主要功能
 
 - 编辑模式下自动锁定相机，左键拖动空白画布不再旋转视图。
-- 右键按下时解除相机锁定；ZScript 版在右键回放结束后立即恢复锁定，Python 版保留 2ms 宽限。
+- 右键按下时解除相机锁定，右键松开后保留 2ms 宽限再恢复锁定。
 - 普通界面（按钮、菜单、滑块等）上的左键操作原样放行。
 - 直接在模型上按下左键时完整放行，正常雕刻。
 - 左键从空白画布开始拖动，进入模型后自动补发起笔（固定 1ms 延时）。
@@ -20,31 +20,14 @@
 
 ## 版本说明
 
-插件提供 Python 版与 ZScript 版两个实现，功能与逻辑一致，**安装时二选一，请勿同时安装**。
-
-### Python 版
-
-- 插件文件：`NoLeftClickRotation.py`
-- 设置面板：`Zplugin > 禁用左键导航`
-- 界面语言：根据 Windows 系统界面语言自动选择简体中文或英文，其他语言回退英文；中英文控件提示与 ZScript 版一致。
-- 使用 Win32 定时器驱动，不受 ZBrush 脚本调度中断的影响。
-
-### ZScript 版
-
-- 插件文件：`NoLeftClickRotation.txt` 与 `NoLeftClickRotationData/NoLeftClickRotation.dll`
-- 设置面板：中文为 `Zplugin > 禁用左键导航`，英文为 `Zplugin > No Left Click Rotation`
-- 界面语言：自动跟随 ZBrush 当前界面语言（ZBrush 默认跟随系统语言）；已提供简体中文与英文，其他语言回退英文；中英文控件提示与 Python 版一致。
-- 内置 Sleep 心跳与 F12 看门狗，脚本循环中断时自动恢复。
+插件文件为 `NoLeftClickRotation.py`，设置面板为 `Zplugin > 禁用左键导航`。界面语言根据 Windows 系统界面语言自动选择简体中文或英文，其他语言回退英文。使用 Win32 定时器驱动，不受 ZBrush 脚本调度中断的影响。
 
 ## 安装方法
 
 1. 完全关闭 ZBrush。
-2. 将所选版本的插件文件复制到当前 ZBrush 版本的用户插件目录：
+2. 将 `NoLeftClickRotation.py` 复制到当前 ZBrush 版本的用户插件目录：
 
    `%APPDATA%\Maxon\Maxon ZBrush 2026_*\ZStartup\ZPlugs64\`
-
-   - Python 版：复制 `NoLeftClickRotation.py`。
-   - ZScript 版：复制 `NoLeftClickRotation.txt` 与整个 `NoLeftClickRotationData` 文件夹。
 
 3. 重新启动 ZBrush。
 4. 打开对应的设置面板，确认「启用 / Enable」已开启。
@@ -52,9 +35,7 @@
 ## 卸载方法
 
 1. 完全关闭 ZBrush。
-2. 删除上述插件目录中的插件文件：
-   - Python 版：删除 `NoLeftClickRotation.py`。
-   - ZScript 版：删除 `NoLeftClickRotation.txt`、`NoLeftClickRotation.zsc` 与 `NoLeftClickRotationData` 文件夹。
+2. 删除上述插件目录中的 `NoLeftClickRotation.py`。
 3. 重新启动 ZBrush。
 
 ## 已知限制
