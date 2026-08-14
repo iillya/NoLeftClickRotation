@@ -1,4 +1,4 @@
-# No Left Click Rotation（禁用左键导航）
+# No Left Click Rotation（禁用ZBrush左键导航）
 
 适用于 Windows 版 ZBrush 2026 的 Python 鼠标交互插件。
 
