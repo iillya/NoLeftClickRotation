@@ -139,6 +139,7 @@ _set_cursor_slot = 0
 _set_cursor_address = 0
 _set_cursor_original = None
 _set_cursor_callback = None
+_cursor_callback_keepalive = []
 _right_relock_at = 0.0
 _hover_mat = None
 _hover_ready = False
@@ -310,8 +311,22 @@ def _install_cursor_watch():
 
 
 def _restore_cursor_watch():
-    if _set_cursor_slot and _set_cursor_address:
-        _write_pointer(_set_cursor_slot, _set_cursor_address)
+    if not (_set_cursor_slot and _set_cursor_address and _set_cursor_callback):
+        return
+    try:
+        callback_address = int(
+            ctypes.cast(_set_cursor_callback, ctypes.c_void_p).value or 0)
+        current_address = ctypes.c_uint64.from_address(
+            _set_cursor_slot).value
+        # A later hook may chain through our callback. Restore the original
+        # pointer only while the IAT slot still belongs to this plugin.
+        if current_address == callback_address:
+            if not _write_pointer(_set_cursor_slot, _set_cursor_address):
+                _cursor_callback_keepalive.append(_set_cursor_callback)
+        else:
+            _cursor_callback_keepalive.append(_set_cursor_callback)
+    except (OSError, ValueError):
+        _cursor_callback_keepalive.append(_set_cursor_callback)
 
 
 def _lock_camera(value):
@@ -469,7 +484,7 @@ def _begin_left(hwnd, msg, wparam, lparam):
 
 def _handle(hwnd, msg, wparam, lparam):
     global _state, _right_relock_at
-    global _hwnd, _lock_state, _hover_mat
+    global _hwnd, _lock_state, _hover_mat, _hover_ready, _installed
     if _injecting:
         return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
 
@@ -542,8 +557,11 @@ def _handle(hwnd, msg, wparam, lparam):
         comctl32.RemoveWindowSubclass(hwnd, _subclass, SUBCLASS_ID)
         _lock_camera(False)
         _hwnd = 0
+        _installed = False
+        _right_relock_at = 0.0
         _lock_state = None
         _hover_mat = None
+        _hover_ready = False
 
     return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
 
@@ -670,8 +688,14 @@ def main():
             _restore_cursor_watch()
             _lock_camera(False)
             return
+        if not user32.SetTimer(_hwnd, POLL_TIMER, POLL_MS, None):
+            comctl32.RemoveWindowSubclass(_hwnd, _subclass, SUBCLASS_ID)
+            _restore_cursor_watch()
+            _lock_camera(False)
+            zbc.set_notebar_text(
+                "NLC V1: failed to start input polling")
+            return
         _installed = True
-        user32.SetTimer(_hwnd, POLL_TIMER, POLL_MS, None)
         _sync_camera()
     except Exception as exc:
         del exc
