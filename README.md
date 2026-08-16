@@ -82,4 +82,4 @@ NoLeftClickRotation.py
 
 ## 版本
 
-v1.1.0
+v1.1.1

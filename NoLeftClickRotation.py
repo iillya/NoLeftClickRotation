@@ -8,7 +8,7 @@ import time
 from ctypes import wintypes
 from zbrush import commands as zbc
 
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 
 WM_TIMER = 0x0113
 WM_CANCELMODE = 0x001F
@@ -832,15 +832,15 @@ def _setup_ui():
     zbc.add_switch(
         ENABLE_PATH, True,
         UI_TEXT["enable_info"],
-        _toggle, initially_disabled=False, width=300,
+        _toggle, initially_disabled=False, width=1, height=0.125,
     )
     zbc.add_button(
         BILI_PATH, UI_TEXT["bili_info"],
-        _open_bili, initially_disabled=False, width=150,
+        _open_bili, initially_disabled=False, width=0.5, height=0.125,
     )
     zbc.add_button(
         GITHUB_PATH, UI_TEXT["github_info"],
-        _open_github, initially_disabled=False, width=150,
+        _open_github, initially_disabled=False, width=0.5, height=0.125,
     )
 
 
