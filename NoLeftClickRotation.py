@@ -8,7 +8,7 @@ import time
 from ctypes import wintypes
 from zbrush import commands as zbc
 
-VERSION = "1.1.1"
+VERSION = "1.2.0"
 
 WM_TIMER = 0x0113
 WM_CANCELMODE = 0x001F
@@ -17,15 +17,12 @@ WM_LBUTTONDOWN = 0x0201
 WM_LBUTTONUP = 0x0202
 WM_RBUTTONDOWN = 0x0204
 WM_RBUTTONUP = 0x0205
-WM_MBUTTONDOWN = 0x0207
-WM_MBUTTONUP = 0x0208
 WM_CAPTURECHANGED = 0x0215
 WM_NCDESTROY = 0x0082
 
 MK_LBUTTON = 0x0001
 MK_SHIFT = 0x0004
 MK_CONTROL = 0x0008
-MK_MBUTTON = 0x0010
 MK_RBUTTON = 0x0002
 VK_LBUTTON = 0x01
 VK_RBUTTON = 0x02
@@ -95,7 +92,7 @@ CLASSIFY_TIMER = 0x4E4C5632
 START_TIMER = 0x4E4C5633
 SUBCLASS_ID = 0x4E4C4352
 POLL_MS = 5
-CLASSIFY_MS = 10
+CLASSIFY_MS = 5
 START_DELAY_MS = 1
 RIGHT_RELOCK_MS = 2
 EDIT_MONITOR_MS = 100
@@ -564,8 +561,6 @@ def _clear_timers(hwnd):
 def _reset(hwnd):
     global _state
     _clear_timers(hwnd)
-    if _state == WAIT_MODEL:
-        _send(hwnd, WM_MBUTTONUP, _mods())
     _state = IDLE
 
 
@@ -575,7 +570,6 @@ def _begin_wait(hwnd):
         _state = IDLE
         return
     _state = WAIT_MODEL
-    _send(hwnd, WM_MBUTTONDOWN, _mods() | MK_MBUTTON)
 
 
 def _finish_classify(hwnd):
@@ -598,8 +592,8 @@ def _finish_classify(hwnd):
             # Quick click: the real up already passed through during Classify.
             _state = IDLE
         return
-    # Blank canvas: end the real press with a synthetic up, then enter the
-    # middle-button wait (the press must not stay active on empty canvas).
+    # Blank canvas: end the real press with a synthetic up, then wait for the
+    # pointer to enter the model (the press must not stay active on canvas).
     _send(hwnd, WM_LBUTTONUP, _mods())
     _begin_wait(hwnd)
 
@@ -614,7 +608,6 @@ def _poll_model(hwnd):
     value = _mat()
     if value == 0.0:
         return
-    _send(hwnd, WM_MBUTTONUP, _mods())
     _state = START_PENDING
     if not user32.SetTimer(hwnd, START_TIMER, START_DELAY_MS, None):
         # A failed one-shot timer must not leave the physical left press
@@ -663,7 +656,7 @@ def _begin_left(hwnd, msg, wparam, lparam):
     # active; swallow moves while classifying (so ZBrush cannot arm its
     # background-rotate gesture). The synthetic UP is deferred to the
     # classification result: LightBox keeps the press (natural click/drag),
-    # blank canvas ends it before the middle-button wait.
+    # while blank canvas ends it before waiting for the model.
     _down_cursor = int(user32.GetCursor() or 0)
     _system_cursor_seen = False
     _state = CLASSIFY
