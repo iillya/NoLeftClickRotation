@@ -1,41 +1,32 @@
 # -*- coding: utf-8 -*-
-"""No Left Click Rotation V1 for ZBrush on Windows."""
+"""Lock the ZBrush camera and unlock it through right-button events."""
 
 import ctypes
 import os
-import struct
-import time
 from ctypes import wintypes
+
 from zbrush import commands as zbc
 
-VERSION = "1.2.0"
 
-WM_TIMER = 0x0113
-WM_CANCELMODE = 0x001F
-WM_MOUSEMOVE = 0x0200
-WM_LBUTTONDOWN = 0x0201
-WM_LBUTTONUP = 0x0202
-WM_RBUTTONDOWN = 0x0204
-WM_RBUTTONUP = 0x0205
-WM_CAPTURECHANGED = 0x0215
-WM_NCDESTROY = 0x0082
+VERSION = "2.1.0"
 
-MK_LBUTTON = 0x0001
-MK_SHIFT = 0x0004
-MK_CONTROL = 0x0008
-MK_RBUTTON = 0x0002
-VK_LBUTTON = 0x01
-VK_RBUTTON = 0x02
-VK_SHIFT = 0x10
-VK_CONTROL = 0x11
-
-CANVAS_WINDOW_ID = 1004
-WINDOW_ID_PATH = "Preferences:Utilities:View Window Id"
 EDIT_PATH = "Transform:Edit"
 LOCK_CAMERA_PATH = "Draw:Lock Camera"
 
+WM_CANCELMODE = 0x001F
+WM_RBUTTONDOWN = 0x0204
+WM_RBUTTONUP = 0x0205
+WM_NCDESTROY = 0x0082
+
+SUBCLASS_ID = 0x52434C4B
+EDIT_TIMER_REQUEST_ID = 0x52434544
+EDIT_POLL_MS = 100
+
+BILI_URL = "https://space.bilibili.com/281243426?spm_id_from=333.1007.0.0"
+GITHUB_URL = "https://github.com/iillya/NoLeftClickRotation"
+
+
 def _system_language_is_chinese():
-    """Use the Windows UI language; unsupported languages fall back to English."""
     try:
         get_language = ctypes.windll.kernel32.GetUserDefaultUILanguage
         get_language.restype = wintypes.WORD
@@ -45,151 +36,111 @@ def _system_language_is_chinese():
 
 
 _TEXT_EN = {
-    "palette": "No Left Click Rotation",
+    "palette": "Right Click Camera Unlock",
     "enable": "Enable",
     "enable_info": (
-        "Enable the plugin. If the left mouse button behaves unexpectedly, "
-        "disable this plugin immediately!"
+        "Lock the camera in Edit mode. Hold the right mouse button to unlock it."
     ),
-    "bili": "BiliBli",
-    "bili_info": "By神说要凑数，Open the author’s BiliBili page",
+    "bili": "BiliBili",
+    "bili_info": "Open the author's BiliBili page",
     "github": "GitHub",
     "github_info": "Open the project on GitHub",
 }
+
 _TEXT_ZH = {
-    "palette": "禁用左键导航",
+    "palette": "右键解锁相机",
     "enable": "启用",
-    "enable_info": "启用插件。若左键出现异常行为，请立即停用此插件！",
+    "enable_info": "在 Edit 模式下锁定相机；按住右键时临时解锁。",
     "bili": "哔哩哔哩",
-    "bili_info": "By神说要凑数，点击打开作者的哔哩哔哩主页",
+    "bili_info": "打开作者的哔哩哔哩主页",
     "github": "GitHub",
     "github_info": "打开项目的 GitHub 页面",
 }
+
 UI_TEXT = _TEXT_ZH if _system_language_is_chinese() else _TEXT_EN
 
-ENGLISH_PALETTE = "Zplugin:No Left Click Rotation"
-CHINESE_PALETTE = "Zplugin:禁用左键导航"
 PALETTE = "Zplugin:" + UI_TEXT["palette"]
-# Close either localized palette left by an earlier run. BODY is the old V1
-# subpalette used by pre-stable builds.
-LEGACY_PALETTES = (ENGLISH_PALETTE, CHINESE_PALETTE)
-BODY = ENGLISH_PALETTE + ":V1"
 ENABLE_PATH = PALETTE + ":" + UI_TEXT["enable"]
 BILI_PATH = PALETTE + ":" + UI_TEXT["bili"]
 GITHUB_PATH = PALETTE + ":" + UI_TEXT["github"]
 
-IDLE = 0
-UI_PASS = 1
-MODEL_PASS = 2
-CLASSIFY = 3
-LIGHTBOX_PASS = 4
-WAIT_MODEL = 5
-START_PENDING = 6
-SCULPTING = 7
-
-POLL_TIMER = 0x4E4C5631
-CLASSIFY_TIMER = 0x4E4C5632
-START_TIMER = 0x4E4C5633
-SUBCLASS_ID = 0x4E4C4352
-POLL_MS = 5
-CLASSIFY_MS = 5
-START_DELAY_MS = 1
-RIGHT_RELOCK_MS = 2
-EDIT_MONITOR_MS = 100
-EDIT_MONITOR_TIMER = 0x4E4C5634
-
-# Numeric resource IDs of the standard Windows system cursors. The IDC_*
-# macros expand to pointer-typed values, so plain integers are used here.
-SYSTEM_CURSOR_IDS = (
-    32512,  # IDC_ARROW
-    32513,  # IDC_IBEAM
-    32514,  # IDC_WAIT
-    32515,  # IDC_CROSS
-    32516,  # IDC_UPARROW
-    32642,  # IDC_SIZENWSE
-    32643,  # IDC_SIZENESW
-    32644,  # IDC_SIZEWE
-    32645,  # IDC_SIZENS
-    32646,  # IDC_SIZEALL
-    32648,  # IDC_NO
-    32649,  # IDC_HAND
-    32650,  # IDC_APPSTARTING
-    32651,  # IDC_HELP
+LEGACY_PALETTES = (
+    "Zplugin:No Left Click Rotation",
+    "Zplugin:禁用左键导航",
+    "Zplugin:Right Click Camera Unlock",
+    "Zplugin:右键解锁相机",
 )
+LEGACY_BODY = "Zplugin:No Left Click Rotation:V1"
 
 LRESULT = ctypes.c_ssize_t
 WPARAM = ctypes.c_size_t
 LPARAM = ctypes.c_ssize_t
+
 SubclassProc = ctypes.WINFUNCTYPE(
-    LRESULT, wintypes.HWND, wintypes.UINT, WPARAM, LPARAM,
-    ctypes.c_void_p, ctypes.c_void_p,
-)
-TimerProc = ctypes.WINFUNCTYPE(
-    None, wintypes.HWND, wintypes.UINT, ctypes.c_size_t, wintypes.DWORD,
+    LRESULT,
+    wintypes.HWND,
+    wintypes.UINT,
+    WPARAM,
+    LPARAM,
+    ctypes.c_size_t,
+    ctypes.c_size_t,
 )
 EnumProc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
-SetCursorProc = ctypes.WINFUNCTYPE(wintypes.HANDLE, wintypes.HANDLE)
+TimerProc = ctypes.WINFUNCTYPE(
+    None,
+    wintypes.HWND,
+    wintypes.UINT,
+    ctypes.c_size_t,
+    wintypes.DWORD,
+)
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
 comctl32 = ctypes.WinDLL("comctl32", use_last_error=True)
-kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 
-user32.GetAsyncKeyState.restype = ctypes.c_short
-user32.GetCursor.restype = wintypes.HANDLE
-user32.LoadCursorW.restype = wintypes.HANDLE
-user32.LoadCursorW.argtypes = [wintypes.HINSTANCE, ctypes.c_void_p]
-user32.GetCursorPos.argtypes = [ctypes.POINTER(wintypes.POINT)]
-user32.ScreenToClient.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
 user32.EnumWindows.argtypes = [EnumProc, wintypes.LPARAM]
 user32.GetClassNameW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
-user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND,
-                                            ctypes.POINTER(wintypes.DWORD)]
+user32.GetWindowThreadProcessId.argtypes = [
+    wintypes.HWND,
+    ctypes.POINTER(wintypes.DWORD),
+]
 user32.SetTimer.restype = ctypes.c_size_t
-user32.SetTimer.argtypes = [wintypes.HWND, ctypes.c_size_t,
-                            wintypes.UINT, ctypes.c_void_p]
-user32.SendMessageW.restype = LRESULT
-user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, WPARAM, LPARAM]
-user32.KillTimer.argtypes = [wintypes.HWND, ctypes.c_size_t]
+user32.SetTimer.argtypes = [
+    wintypes.HWND,
+    ctypes.c_size_t,
+    wintypes.UINT,
+    ctypes.c_void_p,
+]
+
 comctl32.SetWindowSubclass.restype = wintypes.BOOL
-comctl32.SetWindowSubclass.argtypes = [wintypes.HWND, SubclassProc,
-                                       ctypes.c_size_t, ctypes.c_size_t]
+comctl32.SetWindowSubclass.argtypes = [
+    wintypes.HWND,
+    SubclassProc,
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+]
 comctl32.DefSubclassProc.restype = LRESULT
-comctl32.DefSubclassProc.argtypes = [wintypes.HWND, wintypes.UINT,
-                                     WPARAM, LPARAM]
-comctl32.RemoveWindowSubclass.argtypes = [wintypes.HWND, SubclassProc,
-                                          ctypes.c_size_t]
-kernel32.GetModuleHandleW.restype = wintypes.HMODULE
-kernel32.VirtualProtect.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
-                                    wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)]
+comctl32.DefSubclassProc.argtypes = [
+    wintypes.HWND,
+    wintypes.UINT,
+    WPARAM,
+    LPARAM,
+]
+comctl32.RemoveWindowSubclass.argtypes = [
+    wintypes.HWND,
+    SubclassProc,
+    ctypes.c_size_t,
+]
+comctl32.RemoveWindowSubclass.restype = wintypes.BOOL
 
-_hwnd = 0
 _enabled = True
-_state = IDLE
-_injecting = False
-_system_cursor_seen = False
-_system_cursors = []
-_down_cursor = 0
-_set_cursor_slot = 0
-_set_cursor_address = 0
-_set_cursor_original = None
-_set_cursor_callback = None
-_cursor_callback_keepalive = []
-_right_relock_at = 0.0
-_hover_mat = None
-_hover_ready = False
-_hover_mat_at = 0.0
-_installed = False
 _initialized = False
-_edit_monitor_timer_id = 0
-_edit_monitor_callback = None
-_timer_callback_keepalive = []
-_lock_state = None
-_lock_assert_at = 0.0
-_edit_cache = None
-_edit_cache_at = 0.0
-
-def _key(vkey):
-    return bool(user32.GetAsyncKeyState(vkey) & 0x8000)
+_hwnd = 0
+_hook_installed = False
+_right_down = False
+_edit_mode = False
+_camera_state = None
+_edit_timer_id = 0
+_timer_callback = None
 
 
 def _get_switch(path, default=False):
@@ -200,602 +151,180 @@ def _get_switch(path, default=False):
 
 
 def _set_switch(path, value):
+    value = bool(value)
     try:
-        if _get_switch(path) == bool(value):
-            return
+        if _get_switch(path) == value:
+            return True
         try:
-            zbc.set(path, float(bool(value)))
+            zbc.set(path, float(value))
         except Exception:
             zbc.toggle(path)
-    except Exception:
-        pass
-
-
-def _disable_unavailable_plugin():
-    """Shut down plugin behavior when its input hook is unavailable."""
-    global _enabled, _right_relock_at, _lock_state, _hover_mat, _hover_ready
-    _enabled = False
-    _right_relock_at = 0.0
-    _lock_state = None
-    _hover_mat = None
-    _hover_ready = False
-    _stop_edit_monitor()
-    if _hwnd:
-        try:
-            _reset(_hwnd)
-        except Exception:
-            pass
-    try:
-        _lock_camera(False)
-    except Exception:
-        pass
-    try:
-        zbc.set_status(ENABLE_PATH, False)
-    except Exception:
-        pass
-    try:
-        zbc.set_notebar_text("禁用左键导航插件不可用")
-    except Exception:
-        pass
-
-
-def _cleanup_input_hook():
-    """Remove every installed input hook after startup fails."""
-    global _installed
-    if _hwnd:
-        try:
-            _reset(_hwnd)
-        except Exception:
-            pass
-        try:
-            user32.KillTimer(_hwnd, POLL_TIMER)
-        except Exception:
-            pass
-        try:
-            comctl32.RemoveWindowSubclass(_hwnd, _subclass, SUBCLASS_ID)
-        except Exception:
-            pass
-    try:
-        _restore_cursor_watch()
-    except Exception:
-        pass
-    _installed = False
-
-
-def _stop_edit_monitor():
-    global _edit_monitor_timer_id, _edit_monitor_callback
-    if _edit_monitor_timer_id:
-        user32.KillTimer(None, _edit_monitor_timer_id)
-        _edit_monitor_timer_id = 0
-    if _edit_monitor_callback is not None:
-        _timer_callback_keepalive.append(_edit_monitor_callback)
-        _edit_monitor_callback = None
-
-
-def _install_input_hook():
-    """Install the input hook only after Edit mode has become active."""
-    global _installed
-    if _installed or not (_enabled and _edit_mode()):
-        return _installed
-    _stop_edit_monitor()
-    if not _window_id_path_works():
-        zbc.set_notebar_text(
-            "NLC V1: View Window Id unavailable; left-click filter off")
-    if not _install_cursor_watch():
-        _cleanup_input_hook()
-        _disable_unavailable_plugin()
-        return False
-    if not comctl32.SetWindowSubclass(_hwnd, _subclass, SUBCLASS_ID, 0):
-        _cleanup_input_hook()
-        _disable_unavailable_plugin()
-        return False
-    if not user32.SetTimer(_hwnd, POLL_TIMER, POLL_MS, None):
-        _cleanup_input_hook()
-        _disable_unavailable_plugin()
-        return False
-    _installed = True
-    _sync_camera()
-    return True
-
-
-def _start_edit_monitor():
-    global _edit_monitor_timer_id, _edit_monitor_callback
-    if _edit_monitor_timer_id:
-        return True
-
-    @TimerProc
-    def callback(hwnd, message, timer_id, tick):
-        del hwnd, message, tick
-        if int(timer_id) != _edit_monitor_timer_id:
-            return
-        try:
-            if _enabled and _edit_mode():
-                _install_input_hook()
-        except Exception:
-            _disable_unavailable_plugin()
-
-    _edit_monitor_callback = callback
-    timer_id = user32.SetTimer(
-        None, EDIT_MONITOR_TIMER, EDIT_MONITOR_MS,
-        ctypes.cast(callback, ctypes.c_void_p),
-    )
-    if not timer_id:
-        _timer_callback_keepalive.append(callback)
-        _edit_monitor_callback = None
-        return False
-    _edit_monitor_timer_id = int(timer_id)
-    return True
-
-
-def _edit_mode():
-    return _get_switch(EDIT_PATH)
-
-
-def _active():
-    return _enabled and _edit_mode()
-
-
-def _window_id():
-    try:
-        return int(round(float(zbc.get(WINDOW_ID_PATH))))
-    except Exception:
-        return -1
-
-
-def _window_id_path_works():
-    try:
-        float(zbc.get(WINDOW_ID_PATH))
-        return True
+        return _get_switch(path) == value
     except Exception:
         return False
 
 
-def _mat():
-    try:
-        x, y = zbc.get_mouse_pos(global_coordinates=False)
-        return float(zbc.pixol_pick(5, float(x), float(y)))
-    except Exception:
-        return 0.0
-
-
-def _lparam(hwnd):
-    x, y = _client_point(hwnd)
-    return ((y & 0xffff) << 16) | (x & 0xffff)
-
-
-def _client_point(hwnd):
-    point = wintypes.POINT()
-    if not user32.GetCursorPos(ctypes.byref(point)):
-        return (0, 0)
-    if not user32.ScreenToClient(hwnd, ctypes.byref(point)):
-        return (0, 0)
-    return (int(point.x), int(point.y))
-
-
-def _mods():
-    value = 0
-    if _key(VK_SHIFT):
-        value |= MK_SHIFT
-    if _key(VK_CONTROL):
-        value |= MK_CONTROL
-    return value
-
-
-def _send(hwnd, message, wparam):
-    global _injecting
-    _injecting = True
-    try:
-        return user32.SendMessageW(hwnd, message, wparam, _lparam(hwnd))
-    finally:
-        _injecting = False
-
-
-def _write_pointer(slot, value):
-    old = wintypes.DWORD()
-    if not kernel32.VirtualProtect(ctypes.c_void_p(slot), 8, 0x04,
-                                   ctypes.byref(old)):
-        return False
-    ctypes.c_uint64.from_address(slot).value = int(value)
-    unused = wintypes.DWORD()
-    kernel32.VirtualProtect(ctypes.c_void_p(slot), 8, old.value,
-                            ctypes.byref(unused))
-    return True
-
-
-def _find_set_cursor_slot():
-    module = int(kernel32.GetModuleHandleW(None) or 0)
-    header = ctypes.string_at(module, 0x1000)
-    pe = struct.unpack_from("<I", header, 0x3C)[0]
-    optional = ctypes.string_at(module + pe + 24, 0x200)
-    import_rva = struct.unpack_from("<I", optional, 120)[0]
-    descriptor = module + import_rva
-    while True:
-        original, _, _, name_rva, first = struct.unpack(
-            "<IIIII", ctypes.string_at(descriptor, 20))
-        if not any((original, name_rva, first)):
-            break
-        dll = ctypes.string_at(module + name_rva).decode("ascii", "replace")
-        if dll.casefold() == "user32.dll":
-            # Bound imports (OriginalFirstThunk == 0) have their FirstThunk
-            # rewritten in place by the loader with resolved function
-            # addresses, which are not import-by-name RVAs. Walking them would
-            # dereference arbitrary memory, so skip such descriptors instead
-            # of crashing or mis-reading the table.
-            if not original:
-                descriptor += 20
-                continue
-            lookup = module + (original or first)
-            index = 0
-            while True:
-                entry = ctypes.c_uint64.from_address(lookup + index * 8).value
-                if not entry:
-                    break
-                if not entry >> 63:
-                    name = ctypes.string_at(module + entry + 2).decode(
-                        "ascii", "replace")
-                    if name == "SetCursor":
-                        return module + first + index * 8
-                index += 1
-        descriptor += 20
-    return 0
-
-
-def _is_system_cursor(cursor):
-    return cursor in _system_cursors
-
-
-def _install_cursor_watch():
-    global _set_cursor_slot, _set_cursor_address, _set_cursor_original
-    global _set_cursor_callback, _system_cursors, _system_cursor_seen
-    _set_cursor_slot = _find_set_cursor_slot()
-    if not _set_cursor_slot:
-        return False
-    _set_cursor_address = ctypes.c_uint64.from_address(_set_cursor_slot).value
-    _set_cursor_original = SetCursorProc(_set_cursor_address)
-    _system_cursors = [
-        int(user32.LoadCursorW(None, ctypes.c_void_p(cursor_id)) or 0)
-        for cursor_id in SYSTEM_CURSOR_IDS
-    ]
-
-    @SetCursorProc
-    def callback(cursor):
-        global _system_cursor_seen
-        # Any Windows system cursor (arrow, I-beam, hand, resize, ...) means
-        # ZBrush handed the cursor back to the OS, i.e. we are over LightBox
-        # or some native UI surface rather than the sculpting canvas.
-        if _state == CLASSIFY and _is_system_cursor(int(cursor or 0)):
-            _system_cursor_seen = True
-        return _set_cursor_original(cursor)
-
-    _set_cursor_callback = callback
-    return _write_pointer(
-        _set_cursor_slot, ctypes.cast(callback, ctypes.c_void_p).value)
-
-
-def _restore_cursor_watch():
-    if not (_set_cursor_slot and _set_cursor_address and _set_cursor_callback):
+def _set_camera(value):
+    global _camera_state
+    value = bool(value)
+    if value == _camera_state:
         return
-    try:
-        callback_address = int(
-            ctypes.cast(_set_cursor_callback, ctypes.c_void_p).value or 0)
-        current_address = ctypes.c_uint64.from_address(
-            _set_cursor_slot).value
-        # A later hook may chain through our callback. Restore the original
-        # pointer only while the IAT slot still belongs to this plugin.
-        if current_address == callback_address:
-            if not _write_pointer(_set_cursor_slot, _set_cursor_address):
-                _cursor_callback_keepalive.append(_set_cursor_callback)
-        else:
-            _cursor_callback_keepalive.append(_set_cursor_callback)
-    except (OSError, ValueError):
-        _cursor_callback_keepalive.append(_set_cursor_callback)
+    if _set_switch(LOCK_CAMERA_PATH, value):
+        _camera_state = value
 
 
-def _lock_camera(value):
-    _set_switch(LOCK_CAMERA_PATH, value)
-
-
-def _edit_mode_cached():
-    global _edit_cache, _edit_cache_at
-    now = time.perf_counter()
-    if now >= _edit_cache_at:
-        _edit_cache = _get_switch(EDIT_PATH)
-        _edit_cache_at = now + 0.1
-    return _edit_cache
-
-
-def _sync_camera():
-    global _lock_state, _lock_assert_at
-    # A disabled plugin never touches the camera (all features off).
-    if not _enabled:
+def _refresh_edit_mode():
+    global _edit_mode
+    current = _get_switch(EDIT_PATH)
+    if current == _edit_mode:
         return
-    # Do not write ZBrush UI state while any left-button drag is in progress.
-    # Interface and cursor-size sliders rebuild parts of the UI on every
-    # change, so a concurrent camera-lock write can make their thumb jump.
-    if _key(VK_LBUTTON):
-        return
-    # Do not issue ZBrush UI commands while its native controls are under the
-    # pointer. Reasserting Draw:Lock Camera during a slider drag can make the
-    # control jump as ZBrush refreshes the interface.
-    if _is_system_cursor(int(user32.GetCursor() or 0)):
-        return
-    right_held = _key(VK_RBUTTON)
-    relock_grace = time.perf_counter() < _right_relock_at
-    want = _edit_mode_cached() and not right_held and not relock_grace
-    now = time.perf_counter()
-    if want != _lock_state or now >= _lock_assert_at:
-        _lock_camera(want)
-        _lock_state = want
-        _lock_assert_at = now + 0.2
+    _edit_mode = current
+    _set_camera(_enabled and _edit_mode and not _right_down)
 
 
-def _sample_hover():
-    global _hover_mat, _hover_mat_at, _hover_ready
-    # Avoid every ZBrush query during a left-button drag. This must happen
-    # before checking edit mode, because that check itself queries the UI.
-    if not _enabled or _key(VK_LBUTTON):
-        return
-    if not _edit_mode_cached():
-        return
-    # Native ZBrush UI uses a system cursor. Never run pixol_pick over it:
-    # some docked controls report the canvas window ID while being dragged.
-    if _is_system_cursor(int(user32.GetCursor() or 0)):
-        return
-    if _state != IDLE:
-        return
-    if _window_id() != CANVAS_WINDOW_ID:
-        return
-    now = time.perf_counter()
-    if now - _hover_mat_at < 0.01:
-        return
-    _hover_mat = _mat()
-    _hover_mat_at = now
-    _hover_ready = True
-
-
-def _clear_timers(hwnd):
-    user32.KillTimer(hwnd, CLASSIFY_TIMER)
-    user32.KillTimer(hwnd, START_TIMER)
-
-
-def _reset(hwnd):
-    global _state
-    _clear_timers(hwnd)
-    _state = IDLE
-
-
-def _begin_wait(hwnd):
-    global _state
-    if not _key(VK_LBUTTON):
-        _state = IDLE
-        return
-    _state = WAIT_MODEL
-
-
-def _finish_classify(hwnd):
-    global _state
-    user32.KillTimer(hwnd, CLASSIFY_TIMER)
-    if _state != CLASSIFY:
-        return
-    system_cursor = (
-        _system_cursor_seen
-        or _is_system_cursor(_down_cursor)
-        or _is_system_cursor(int(user32.GetCursor() or 0))
-    )
-    if system_cursor:
-        if _key(VK_LBUTTON):
-            # The real down is still active in ZBrush: keep it, let moves flow
-            # so click/drag behave naturally (no click-before-drag side
-            # effect). The real up completes the gesture.
-            _state = LIGHTBOX_PASS
-        else:
-            # Quick click: the real up already passed through during Classify.
-            _state = IDLE
-        return
-    # Blank canvas: end the real press with a synthetic up, then wait for the
-    # pointer to enter the model (the press must not stay active on canvas).
-    _send(hwnd, WM_LBUTTONUP, _mods())
-    _begin_wait(hwnd)
-
-
-def _poll_model(hwnd):
-    global _state
-    if _state != WAIT_MODEL:
-        return
-    if not _active() or not _key(VK_LBUTTON):
-        _reset(hwnd)
-        return
-    value = _mat()
-    if value == 0.0:
-        return
-    _state = START_PENDING
-    if not user32.SetTimer(hwnd, START_TIMER, START_DELAY_MS, None):
-        # A failed one-shot timer must not leave the physical left press
-        # orphaned after the probe has ended it. Start sculpting immediately.
-        _start_sculpt(hwnd)
-
-
-def _start_sculpt(hwnd):
-    global _state
-    user32.KillTimer(hwnd, START_TIMER)
-    if _state != START_PENDING:
-        return
-    if not _active() or not _key(VK_LBUTTON):
-        _state = IDLE
-        return
-    _send(hwnd, WM_LBUTTONDOWN, _mods() | MK_LBUTTON)
-    _send(hwnd, WM_MOUSEMOVE, _mods() | MK_LBUTTON)
-    _state = SCULPTING
-
-
-def _begin_left(hwnd, msg, wparam, lparam):
-    global _state, _system_cursor_seen, _down_cursor
-    if not _active():
-        _state = IDLE
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-    # ZBrush uses a Windows system cursor for its native UI. Check it before
-    # consulting the window ID: some docked sliders report the canvas ID while
-    # being dragged, and must never enter the canvas-classification path.
-    if _is_system_cursor(int(user32.GetCursor() or 0)):
-        _state = UI_PASS
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-    wid = _window_id()
-    if wid != CANVAS_WINDOW_ID:
-        _state = UI_PASS
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-    if _hover_ready and _hover_mat != 0.0:
-        _state = MODEL_PASS
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-    # Ctrl keeps its native canvas gesture. Alt+left follows the same
-    # UI/model/LightBox/blank classification as an ordinary left press.
-    if _key(VK_CONTROL):
-        _state = UI_PASS
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    # Ambiguous LightBox/blank-canvas point: pass the real down but keep it
-    # active; swallow moves while classifying (so ZBrush cannot arm its
-    # background-rotate gesture). The synthetic UP is deferred to the
-    # classification result: LightBox keeps the press (natural click/drag),
-    # while blank canvas ends it before waiting for the model.
-    _down_cursor = int(user32.GetCursor() or 0)
-    _system_cursor_seen = False
-    _state = CLASSIFY
-    result = comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-    if not user32.SetTimer(hwnd, CLASSIFY_TIMER, CLASSIFY_MS, None):
-        # Fail closed without leaving the UI in a perpetual classify state.
-        _finish_classify(hwnd)
-    return result
-
-
-def _handle(hwnd, msg, wparam, lparam):
-    global _state, _right_relock_at
-    global _hwnd, _lock_state, _hover_mat, _hover_ready, _installed
-    if _injecting:
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if msg == WM_TIMER:
-        timer = int(wparam)
-        if timer == POLL_TIMER:
-            _sync_camera()
-            _poll_model(hwnd)
-            _sample_hover()
-            return 0
-        if timer == CLASSIFY_TIMER:
-            _finish_classify(hwnd)
-            return 0
-        if timer == START_TIMER:
-            _start_sculpt(hwnd)
-            return 0
-
-    if msg == WM_RBUTTONDOWN:
-        if not (_enabled and _edit_mode()):
-            return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-        # Right press unlocks the camera directly and is then passed through
-        # unchanged, so ZBrush starts the rotate gesture right away.
-        _right_relock_at = 0.0
-        _lock_camera(False)
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if msg == WM_RBUTTONUP:
-        if not (_enabled and _edit_mode()):
-            return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-        # Relock the camera 2ms after the right button is released.
-        _right_relock_at = time.perf_counter() + RIGHT_RELOCK_MS / 1000.0
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if msg == WM_LBUTTONDOWN:
-        return _begin_left(hwnd, msg, wparam, lparam)
-
-    if msg == WM_MOUSEMOVE:
-        # Swallow movement only while the probe classifies (5ms). After the
-        # decision every state passes moves through.
-        if _state == CLASSIFY:
-            return 0
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if msg == WM_LBUTTONUP:
-        previous = _state
-        if previous == CLASSIFY:
-            # The real down is still active; the real up completes the click.
-            # No replay needed for quick clicks.
-            user32.KillTimer(hwnd, CLASSIFY_TIMER)
-            _state = IDLE
-            return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-        if previous in (WAIT_MODEL, START_PENDING):
-            # The probe already ended the press with a synthetic UP, so ZBrush
-            # is not holding a left down here; swallow the physical UP instead
-            # of delivering an orphan button-up.
-            _reset(hwnd)
-            return 0
-        _state = IDLE
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if msg in (WM_CANCELMODE, WM_CAPTURECHANGED):
-        if not _key(VK_LBUTTON):
-            _reset(hwnd)
-        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
-
-    if msg == WM_NCDESTROY:
-        _reset(hwnd)
-        user32.KillTimer(hwnd, POLL_TIMER)
-        _restore_cursor_watch()
-        comctl32.RemoveWindowSubclass(hwnd, _subclass, SUBCLASS_ID)
-        _lock_camera(False)
-        _hwnd = 0
-        _installed = False
-        _right_relock_at = 0.0
-        _lock_state = None
-        _hover_mat = None
-        _hover_ready = False
-
+def _handle_right_down(hwnd, msg, wparam, lparam):
+    global _right_down
+    _right_down = True
+    if _enabled and _edit_mode:
+        # Unlock before ZBrush receives the press, so rotation starts at once.
+        _set_camera(False)
     return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
 
 
+def _handle_right_up(hwnd, msg, wparam, lparam):
+    global _right_down
+    # Let ZBrush finish its native right-button gesture before relocking.
+    result = comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
+    _right_down = False
+    if _enabled and _edit_mode:
+        _set_camera(True)
+    return result
+
+
 @SubclassProc
-def _subclass(hwnd, msg, wparam, lparam, sid, reference):
-    del sid, reference
+def _subclass(hwnd, msg, wparam, lparam, subclass_id, reference):
+    del subclass_id, reference
+    global _camera_state, _hook_installed, _hwnd, _right_down
+
     try:
-        return _handle(hwnd, msg, wparam, lparam)
+        if msg == WM_RBUTTONDOWN:
+            return _handle_right_down(hwnd, msg, wparam, lparam)
+
+        if msg == WM_RBUTTONUP:
+            return _handle_right_up(hwnd, msg, wparam, lparam)
+
+        if msg == WM_CANCELMODE:
+            _right_down = False
+            if _enabled and _edit_mode:
+                _set_camera(True)
+
+        if msg == WM_NCDESTROY:
+            comctl32.RemoveWindowSubclass(hwnd, _subclass, SUBCLASS_ID)
+            _hook_installed = False
+            _hwnd = 0
+            _right_down = False
+            _camera_state = None
+
+        return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
     except Exception:
-        _cleanup_input_hook()
-        _disable_unavailable_plugin()
+        # Never consume a native ZBrush message when plugin handling fails.
         return comctl32.DefSubclassProc(hwnd, msg, wparam, lparam)
 
 
 @EnumProc
-def _find(hwnd, unused):
+def _find_zbrush_window(hwnd, unused):
     del unused
     global _hwnd
-    name = ctypes.create_unicode_buffer(64)
-    if user32.GetClassNameW(hwnd, name, len(name)) and name.value == "ZBrush":
-        pid = wintypes.DWORD()
-        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-        if pid.value == os.getpid():
-            _hwnd = int(hwnd)
-            return False
+
+    class_name = ctypes.create_unicode_buffer(64)
+    if not user32.GetClassNameW(hwnd, class_name, len(class_name)):
+        return True
+    if class_name.value != "ZBrush":
+        return True
+
+    process_id = wintypes.DWORD()
+    user32.GetWindowThreadProcessId(hwnd, ctypes.byref(process_id))
+    if process_id.value != os.getpid():
+        return True
+
+    _hwnd = int(hwnd)
+    return False
+
+
+def _install_right_button_hook():
+    global _hook_installed
+    if _hook_installed:
+        return True
+
+    user32.EnumWindows(_find_zbrush_window, 0)
+    if not _hwnd:
+        return False
+
+    if not comctl32.SetWindowSubclass(_hwnd, _subclass, SUBCLASS_ID, 0):
+        return False
+
+    _hook_installed = True
     return True
+
+
+def _remove_right_button_hook():
+    global _hook_installed
+    if not (_hook_installed and _hwnd):
+        return
+    comctl32.RemoveWindowSubclass(_hwnd, _subclass, SUBCLASS_ID)
+    _hook_installed = False
+
+
+@TimerProc
+def _on_edit_timer(hwnd, message, timer_id, tick):
+    del hwnd, message, tick
+    if int(timer_id) != _edit_timer_id:
+        return
+    try:
+        _refresh_edit_mode()
+    except Exception:
+        pass
+
+
+def _start_edit_timer():
+    global _edit_timer_id, _timer_callback
+    if _edit_timer_id:
+        return True
+
+    _timer_callback = _on_edit_timer
+    timer_id = user32.SetTimer(
+        None,
+        EDIT_TIMER_REQUEST_ID,
+        EDIT_POLL_MS,
+        ctypes.cast(_timer_callback, ctypes.c_void_p),
+    )
+    if not timer_id:
+        _timer_callback = None
+        return False
+
+    _edit_timer_id = int(timer_id)
+    return True
+
+
+def _disable_unavailable():
+    global _enabled, _camera_state
+    _enabled = False
+    _camera_state = None
+    _set_switch(LOCK_CAMERA_PATH, False)
+    try:
+        zbc.set_status(ENABLE_PATH, False)
+        zbc.set_notebar_text("右键解锁相机插件不可用")
+    except Exception:
+        pass
 
 
 def _toggle(sender, value):
     del sender
-    global _enabled, _right_relock_at, _hover_mat, _hover_ready, _lock_state
+    global _enabled, _camera_state
     _enabled = bool(value)
-    if _hwnd:
-        _reset(_hwnd)
-    if not _enabled:
-        _stop_edit_monitor()
-        _right_relock_at = 0.0
-        _hover_mat = None
-        _hover_ready = False
-        _lock_state = None
-        _lock_camera(False)
-    else:
-        if _installed:
-            _sync_camera()
-        elif _edit_mode():
-            _install_input_hook()
-        else:
-            _start_edit_monitor()
+    _camera_state = None
+    _refresh_edit_mode()
+    _set_camera(_enabled and _edit_mode and not _right_down)
 
 
 def _open_url(url):
@@ -807,56 +336,72 @@ def _open_url(url):
 
 def _open_bili(sender):
     del sender
-    _open_url("https://space.bilibili.com/281243426?spm_id_from=333.1007.0.0")
+    _open_url(BILI_URL)
 
 
 def _open_github(sender):
     del sender
-    _open_url("https://github.com/iillya/NoLeftClickRotation")
+    _open_url(GITHUB_URL)
 
 
 def _setup_ui():
-    if zbc.exists(BODY):
-        zbc.close(BODY)
+    if zbc.exists(LEGACY_BODY):
+        zbc.close(LEGACY_BODY)
+
     for old_palette in LEGACY_PALETTES:
-        if zbc.exists(old_palette):
+        if old_palette != PALETTE and zbc.exists(old_palette):
             zbc.close(old_palette)
+
+    if zbc.exists(PALETTE):
+        zbc.close(PALETTE)
+
     zbc.add_subpalette(PALETTE, title_mode=0)
     zbc.add_switch(
-        ENABLE_PATH, True,
+        ENABLE_PATH,
+        True,
         UI_TEXT["enable_info"],
-        _toggle, initially_disabled=False, width=1, height=0.125,
+        _toggle,
+        initially_disabled=False,
+        width=1,
+        height=0.125,
     )
     zbc.add_button(
-        BILI_PATH, UI_TEXT["bili_info"],
-        _open_bili, initially_disabled=False, width=0.5, height=0.125,
+        BILI_PATH,
+        UI_TEXT["bili_info"],
+        _open_bili,
+        initially_disabled=False,
+        width=0.5,
+        height=0.125,
     )
     zbc.add_button(
-        GITHUB_PATH, UI_TEXT["github_info"],
-        _open_github, initially_disabled=False, width=0.5, height=0.125,
+        GITHUB_PATH,
+        UI_TEXT["github_info"],
+        _open_github,
+        initially_disabled=False,
+        width=0.5,
+        height=0.125,
     )
 
 
 def main():
-    global _initialized
+    global _edit_mode, _initialized
     if _initialized:
         return
+
     _initialized = True
-    try:
-        _setup_ui()
-        user32.EnumWindows(_find, 0)
-        if not _hwnd:
-            _cleanup_input_hook()
-            _disable_unavailable_plugin()
-            return
-        if _edit_mode():
-            _install_input_hook()
-        elif not _start_edit_monitor():
-            _disable_unavailable_plugin()
-    except Exception as exc:
-        del exc
-        _cleanup_input_hook()
-        _disable_unavailable_plugin()
+    _setup_ui()
+    _edit_mode = _get_switch(EDIT_PATH)
+
+    if not _install_right_button_hook():
+        _disable_unavailable()
+        return
+
+    if not _start_edit_timer():
+        _remove_right_button_hook()
+        _disable_unavailable()
+        return
+
+    _set_camera(_enabled and _edit_mode)
 
 
 main()
