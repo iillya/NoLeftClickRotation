@@ -36,7 +36,7 @@ def _system_language_is_chinese():
 
 
 _TEXT_EN = {
-    "palette": "Right Click Camera Unlock",
+    "palette": "No Left Click Rotation",
     "enable": "Enable",
     "enable_info": (
         "Lock the camera in Edit mode. Hold the right mouse button to unlock it."
@@ -48,7 +48,7 @@ _TEXT_EN = {
 }
 
 _TEXT_ZH = {
-    "palette": "右键解锁相机",
+    "palette": "禁用左键导航",
     "enable": "启用",
     "enable_info": "在 Edit 模式下锁定相机；按住右键时临时解锁。",
     "bili": "哔哩哔哩",
@@ -313,7 +313,7 @@ def _disable_unavailable():
     _set_switch(LOCK_CAMERA_PATH, False)
     try:
         zbc.set_status(ENABLE_PATH, False)
-        zbc.set_notebar_text("右键解锁相机插件不可用")
+        zbc.set_notebar_text("禁用左键导航插件不可用")
     except Exception:
         pass
 
